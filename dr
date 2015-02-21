@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ "$1" == "new" ]; then
+    lastNum=$(ls -1 *.dre | sort | tail -n 1 | cut -c 1-5)
+    let newNum=10#$lastNum+1
+    printf -v newNum '%05d' "$newNum"
+    echo -e "Id:\t$newNum" > $newNum.dre
+    today=$(date '+%Y-%m-%d')
+    echo -e "Date:\t$today" >> $newNum.dre
+    echo -e "Tags:\t" >> $newNum.dre
+    echo -e "\n" >> $newNum.dre
+    cp $newNum.dre /tmp
+    vim $newNum.dre -c 5
+    diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
+    if [ $? == 0 ]; then
+        echo "Deleting unmodified dream."
+        rm $newNum.dre
+        rm /tmp/$newNum.dre
+    fi
+elif [ "$1" == "tag-list" ]; then
+    grep 'Tags:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > tags.dtags
+elif [ "$1" == "person-list" ]; then
+    grep 'People:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > people.dtags
+fi
