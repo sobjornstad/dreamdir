@@ -21,4 +21,6 @@ elif [ "$1" == "tag-list" ]; then
     grep 'Tags:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > tags.dtags
 elif [ "$1" == "person-list" ]; then
     grep 'People:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > people.dtags
+elif [ "$1" == "random" ]; then
+    view $(ls -1 *.dre | shuf | head -n 1)
 fi
