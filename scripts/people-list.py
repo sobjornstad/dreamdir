@@ -1,8 +1,34 @@
 #!/usr/bin/env python
 
 import ddirparse
+import sys
 
-OUTPUT_FILE = 'people-list.csv'
+# manual inversion/sorting
+nameExceptions = {
+    'Margaret de Veer': 'de Veer, Margaret',
+}
+
+def mungeNames(item):
+    # is this an exception?
+    if item in nameExceptions:
+        return nameExceptions[item]
+
+    # if there are two elements, separated by a space, take those as first
+    # and last name and invert them
+    sitem = item.split(' ')
+    if len(sitem) == 2:
+        item = sitem[1] + ", " + sitem[0]
+
+    return item
+
+
+### MAIN ###
+if len(sys.argv) > 1 and sys.argv[1] == "--index":
+    indexMode = True
+    OUTPUT_FILE = '/home/soren/current/drbook/resources/people-index.tex'
+else:
+    indexMode = False
+    OUTPUT_FILE = 'people-list.csv'
 
 outputs = {}
 dreams = ddirparse.getAttribForAllDreams('People')
@@ -34,12 +60,22 @@ for d in dreams:
         if p in cleanDreams[d]:
             peopleDict[p].append(d)
 
+# invert first/last names where appropriate
+newPeopleDict = {}
+for item in peopleDict:
+    newPeopleDict[mungeNames(item)] = peopleDict[item]
+peopleDict = newPeopleDict
+
 # make CSV
-order = sorted(peopleDict.keys())
+order = sorted(peopleDict.keys(), key=str.lower)
 outstr = ""
 for person in order:
-    dreamList = ' '.join([str(i) for i in peopleDict[person]])
-    outstr += "%s,%s,%s\n" % (person, len(peopleDict[person]), dreamList)
+    dreamList = ', '.join([str(i) for i in peopleDict[person]])
+    if indexMode:
+        outstr += "\\item {%s}, %s\n" % (person, dreamList)
+    else:
+        outstr += "%s,%s,%s\n" % (person, len(peopleDict[person]), dreamList)
 with open(OUTPUT_FILE, 'w') as f:
-    f.write("person, numdreams, dreamlist\n")
+    if not indexMode:
+        f.write("person, numdreams, dreamlist\n")
     f.write(outstr)
