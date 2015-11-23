@@ -1,0 +1,5 @@
+*.svg
+*.un~
+*.dtags
+*.log
+*.pyc

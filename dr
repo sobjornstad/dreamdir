@@ -7,6 +7,7 @@ if [ "$1" == "new" ]; then
     echo -e "Id:\t$newNum" > $newNum.dre
     today=$(date '+%Y-%m-%d')
     echo -e "Date:\t$today" >> $newNum.dre
+    echo -e "Time:\t" >> $newNum.dre
     echo -e "Tags:\t" >> $newNum.dre
     echo -e "\n" >> $newNum.dre
     cp $newNum.dre /tmp
