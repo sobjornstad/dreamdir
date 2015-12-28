@@ -1,6 +1,21 @@
 #!/bin/bash
 
-if [ "$1" == "new" ]; then
+function usagemsg() {
+    echo "Dreamdir helper script"
+    echo "Copyright (c) 2015 Soren Bjornstad."
+    echo "Usage: dr <action> [...action arguments]"
+    echo ""
+    echo "Available actions:"
+    echo "new - create new dream with next available ID number"
+    echo "(tag|person|place)-list - update the tag list file for this tag type"
+    echo "random - open a random dream in 'view'"
+    echo "id-check - check to make sure all dream ID numbers are contiguous"
+    echo "find-tagged [header name] [value] - print list of ID numbers matching search"
+    echo "help - show this usage message"
+}
+
+case "$1" in
+"new")
     lastNum=$(ls -1 *.dre | sort | tail -n 1 | cut -c 1-5)
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
@@ -11,19 +26,64 @@ if [ "$1" == "new" ]; then
     echo -e "Tags:\t" >> $newNum.dre
     echo -e "\n" >> $newNum.dre
     cp $newNum.dre /tmp
-    vim $newNum.dre -c 5
+    vim $newNum.dre -c 6
     diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
     if [ $? == 0 ]; then
         echo "Deleting unmodified dream."
         rm $newNum.dre
         rm /tmp/$newNum.dre
     fi
-elif [ "$1" == "tag-list" ]; then
-    grep 'Tags:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > tags.dtags
-elif [ "$1" == "person-list" ]; then
-    grep 'People:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > people.dtags
-elif [ "$1" == "place-list" ]; then
-    grep 'Places:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > places.dtags
-elif [ "$1" == "random" ]; then
-    view $(ls -1 *.dre | shuf | head -n 1)
-fi
+    ;;
+
+"tag-list")
+    grep 'Tags:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > tags.dtags ;;
+"person-list")
+    grep 'People:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > people.dtags ;;
+"place-list")
+    grep 'Places:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > places.dtags ;;
+
+"random")
+    view $(ls -1 *.dre | shuf | head -n 1) ;;
+
+"id-check")
+    python2 <<PYTH_ID_CHECK
+import subprocess, sys
+listing = subprocess.check_output(["ls"]).split('.dre\n')
+nums = []
+for i in listing:
+    try:
+        nums.append(int(i))
+    except ValueError:
+        # not a dream file, but auxiliary of some kind
+        continue
+
+lastnum = 0
+for i in nums:
+    if i != lastnum+1:
+        print("Dream ID continuity check failed!")
+        print("Failure was on ID %i, not continuous with previous ID %i." % (
+              i, lastnum))
+        sys.exit(1)
+    else:
+        lastnum = i
+print("Dream ID continuity check succeeded.")
+sys.exit(0)
+PYTH_ID_CHECK
+    ;;
+
+"find-tagged")
+    header="$2"
+    shift; shift
+    python2 <<PYTH_FINDTAGGED
+import scripts.ddirparse as dp
+print dp.getDreamsTagged("$header", "$@")
+PYTH_FINDTAGGED
+    ;;
+
+"help")
+    usagemsg ;;
+"--help")
+    usagemsg ;;
+*)
+    usagemsg ;;
+esac
