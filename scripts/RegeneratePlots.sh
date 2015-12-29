@@ -4,4 +4,4 @@ python ./date-dotplot.py
 R --vanilla < ./date-dotplot.R
 rm dotplot-data.csv
 
-rm Rplots.pdf
+rm -f Rplots.pdf

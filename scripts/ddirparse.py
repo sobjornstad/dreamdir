@@ -9,23 +9,18 @@ def getAttribForAllDreams(attrib):
     element for each dream in the directory which has said id, keys showing
     the dream numbers and values the entire (unprocessed) attribute line.
     """
-    rawL = os.listdir(INPUT_DIRECTORY)
-    l = [i for i in rawL if i.endswith('.dre')]
 
     dreams = {}
-    for dreamfile in l:
+    for f in allDreamfiles():
         attribline = ''
-        with open(INPUT_DIRECTORY + "/" + dreamfile) as f:
-            while True:
-                line = f.readline().strip()
-                if not line:
-                    # EOF
-                    break
-                if line.startswith('Id:\t'):
-                    did = line.split('\t')[1].strip()
-                if line.startswith('%s:' % attrib):
-                    attribline = line
-                    break
+        did = None
+        for line in f:
+            textline = line.strip()
+            if textline.startswith('Id:\t'):
+                did = textline.split('\t')[1].strip()
+            if textline.startswith('%s:' % attrib):
+                attribline = textline
+                break
 
         if not did:
             print "ERROR: Missing id in a dream file!"
@@ -42,21 +37,32 @@ def getDreamsTagged(attrib, tag):
     Find all dreams that are tagged with 'tag' as one of the 'attrib'
     attributes.
     """
-    rawL = os.listdir(INPUT_DIRECTORY)
-    l = [i for i in rawL if i.endswith('.dre')]
-
     dreams = []
-    for dreamfile in l:
-        with open(os.path.join(INPUT_DIRECTORY, dreamfile)) as f:
-            for line in f:
-                linetext = line.strip()
-                if linetext.startswith('Id:\t'):
-                    did = line.split('\t')[1].strip()
-                if linetext.startswith('%s:' % attrib):
-                    if tag in linetext:
-                        dreams.append(_safeGetIntId(did))
-                    break
+    for f in allDreamfiles():
+        for line in f:
+            linetext = line.strip()
+            if linetext.startswith('Id:\t'):
+                did = line.split('\t')[1].strip()
+            if linetext.startswith('%s:' % attrib):
+                if tag in linetext:
+                    dreams.append(_safeGetIntId(did))
+                break
     return sorted(dreams)
+
+
+def allDreamfiles():
+    """
+    Generator function for iterating over all dreamfiles in the directory.
+
+    Example (prints the contents of the dreamdir to the screen):
+    >>> for f in allDreamfiles():
+    >>>     for line in f:
+    >>>         print(line)
+    """
+    listing = os.listdir(INPUT_DIRECTORY)
+    for dreamfile in (i for i in listing if i.endswith('.dre')):
+        with open(os.path.join(INPUT_DIRECTORY, dreamfile)) as f:
+            yield f
 
 
 

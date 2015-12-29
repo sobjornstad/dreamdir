@@ -70,7 +70,7 @@ peopleDict = newPeopleDict
 order = sorted(peopleDict.keys(), key=str.lower)
 outstr = ""
 for person in order:
-    dreamList = ', '.join([str(i) for i in peopleDict[person]])
+    dreamList = ', '.join([str(i) for i in sorted(peopleDict[person])])
     if indexMode:
         outstr += "\\item {%s}, %s\n" % (person, dreamList)
     else:
