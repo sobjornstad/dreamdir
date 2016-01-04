@@ -4,7 +4,6 @@
 if exists("b:current_syntax")
      finish
 endif
-
 let b:current_syntax = "dream"
 
 " headers
@@ -25,8 +24,10 @@ syntax match Raw "\`.\{-\}\`" contained
 syntax match Raw "\`.\{-\}\`"
 
 " RL brackets
-syntax match WL "\[.\{-\}\]" contained
-syntax match WL "\[.\{-\}\]"
+syntax region WL start="\[" end="\]" contained
+syntax region WL start="\[" end="\]"
+"syntax match WL "\[.\{-\}\]" contained
+"syntax match WL "\[.\{-\}\]"
 
 " emphasis
 syntax match Emphasis "\*.\{-\}\*" contained

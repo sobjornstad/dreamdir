@@ -30,6 +30,6 @@ nnoremap <LocalLeader>h :call DreamHeaderSearch()<CR>
 nnoremap <LocalLeader>s :call DreamKeywordSearch()<CR>
 
 nnoremap <LocalLeader>t :vs tags.dtags<CR>:set cursorline<CR>
-"nnoremap <LocalLeader>dp mz?Id:\t<CR>$by$
 
+"nnoremap <LocalLeader>dp mz?Id:\t<CR>$by$
 "nnoremap <LocalLeader>n ?Id:\t <CR>:noh<CR>$by$:e<C-r>".dre<Home><Right><Right>00<CR>
