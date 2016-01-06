@@ -2,7 +2,7 @@
 
 function usagemsg() {
     echo "Dreamdir helper script"
-    echo "Copyright (c) 2015 Soren Bjornstad."
+    echo "Copyright (c) 2015-2016 Soren Bjornstad."
     echo "Usage: dr <action> [...action arguments]"
     echo ""
     echo "Available actions:"
@@ -80,10 +80,6 @@ print dp.getDreamsTagged("$header", "$@")
 PYTH_FINDTAGGED
     ;;
 
-"help")
-    usagemsg ;;
-"--help")
-    usagemsg ;;
-*)
+"help"|"--help"|*)
     usagemsg ;;
 esac
