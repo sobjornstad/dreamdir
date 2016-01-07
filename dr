@@ -1,4 +1,5 @@
 #!/bin/bash
+. ~/bin/common.sh
 
 function usagemsg() {
     echo "Dreamdir helper script"
@@ -13,6 +14,9 @@ function usagemsg() {
     echo "find-tagged [header name] [value] - print list of ID numbers matching search"
     echo "help - show this usage message"
 }
+
+ensure '-d scripts' "Please run this script from the dreamdir root directory."
+ensure '-d graphs'  "Please run this script from the dreamdir root directory."
 
 case "$1" in
 "new")
@@ -76,8 +80,28 @@ PYTH_ID_CHECK
     shift; shift
     python2 <<PYTH_FINDTAGGED
 import scripts.ddirparse as dp
-print dp.getDreamsTagged("$header", "$@")
+dreams = dp.getDreamsTagged("$header", "$@")
+print "%i matches: %r" % (len(dreams), dreams)
 PYTH_FINDTAGGED
+    ;;
+
+"open-tagged")
+    # Do a find using the same method as find-tagged but then open those files
+    # in vim rather than just showing a list of the numbers.
+    tempfile="/tmp/dreamsearch"
+    ensure '! -e $tempfile' "Please check & remove existing temp file $tempfile and try again."
+    header="$2"
+    shift; shift
+    python2 <<PYTH_SHOWTAGGED
+import scripts.ddirparse as dp
+dreams = dp.getDreamsTagged("$header", "$@")
+dreamStr = '.dre '.join([("%05i" % i) for i in dreams]) + '.dre'
+print dreamStr
+with open("$tempfile", "w") as f:
+    f.write(dreamStr)
+PYTH_SHOWTAGGED
+    vim $(cat "$tempfile")
+    rm "$tempfile"
     ;;
 
 "help"|"--help"|*)
