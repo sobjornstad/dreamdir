@@ -1,5 +1,5 @@
 #!/bin/bash
-. ~/bin/common.sh
+. ~/bin/common.sh 1
 
 usagemsg() {
     cat <<USAGEMSG
@@ -16,8 +16,8 @@ header-list <header>         :: show a list of all values used for this header
 find-tagged <header> <value> :: print list of ID numbers matching search
 open-tagged <header> <value> :: pass dreams matching search as args to $EDITOR'
 random                       :: open a random dream in 'view'
-id-check                     :: check to make sure all dream ID numbers are
-                                contiguous
+validate                     :: format sanity check: ensure all dreams have IDs
+                                and dates and ID numbers are contiguous
 USAGEMSG
     exit 0
 }
@@ -60,7 +60,38 @@ case "$1" in
 "random")
     view $(ls -1 *.dre | shuf | head -n 1) ;;
 
-"id-check")
+"validate")
+    # set up temp file for checking id and date headers
+    tempfile="/tmp/dreamgrep" # contains list of dream files
+    ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
+    ls *.dre | sort > "$tempfile"
+
+    # check for id problems
+    checkFailedFor=$(grep -l 'Id:	' *.dre | sort | diff - "$tempfile")
+    if [ $? == 0 ]; then
+        echo "ID value check...success"
+    else
+        echo "ID value check...FAIL"
+        echo "The files listed in the following diff are missing Id headers."
+        echo "$checkFailedFor"
+        rm "$tempfile"
+        exit 1
+    fi
+
+    # check for date problems (similar -- consider a function)
+    checkFailedFor=$(grep -l 'Date:	' *.dre | sort | diff - "$tempfile")
+    if [ $? == 0 ]; then
+        echo "Date check...success"
+    else
+        echo "Date check...FAIL"
+        echo "The files listed in the following diff are missing Date headers."
+        echo "$checkFailedFor"
+        rm "$tempfile"
+        exit 1
+    fi
+    rm "$tempfile"
+
+    # check for ID continuity
     python2 <<PYTH_ID_CHECK
 import subprocess, sys
 listing = subprocess.check_output(["ls"]).split('.dre\n')
@@ -75,15 +106,21 @@ for i in listing:
 lastnum = 0
 for i in nums:
     if i != lastnum+1:
-        print("Dream ID continuity check failed!")
+        print("ID continuity check...FAIL")
         print("Failure was on ID %i, not continuous with previous ID %i." % (
               i, lastnum))
         sys.exit(1)
     else:
         lastnum = i
-print("Dream ID continuity check succeeded.")
+print("ID continuity check...success")
 sys.exit(0)
 PYTH_ID_CHECK
+
+    if [ $? != 0 ]; then
+        exit 1
+    fi
+
+    echo "All tests succeeded."
     ;;
 
 "find-tagged")
@@ -100,7 +137,7 @@ PYTH_FINDTAGGED
     # Do a find using the same method as find-tagged but then open those files
     # in vim rather than just showing a list of the numbers.
     tempfile="/tmp/dreamsearch"
-    ensure '! -e $tempfile' "Please check & remove existing temp file $tempfile and try again."
+    ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
     header="$2"
     shift; shift # value to search for remains in args
 
