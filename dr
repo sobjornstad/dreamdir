@@ -1,26 +1,35 @@
 #!/bin/bash
 . ~/bin/common.sh
 
-function usagemsg() {
-    echo "Dreamdir helper script"
-    echo "Copyright (c) 2015-2016 Soren Bjornstad."
-    echo "Usage: dr <action> [...action arguments]"
-    echo ""
-    echo "Available actions:"
-    echo "new - create new dream with next available ID number"
-    echo "(tag|person|place)-list - update the tag list file for this tag type"
-    echo "random - open a random dream in 'view'"
-    echo "id-check - check to make sure all dream ID numbers are contiguous"
-    echo "find-tagged [header name] [value] - print list of ID numbers matching search"
-    echo "help - show this usage message"
+usagemsg() {
+    cat <<USAGEMSG
+Dreamdir helper script
+Copyright (c) 2015-2016 Soren Bjornstad.
+Usage: $0 <action> [<action arguments>]
+
+Available actions:
+help                         :: show this usage message
+new                          :: create a new dream with the next available ID
+                                number
+header-list <header>         :: show a list of all values used for this header
+                                in any dream
+find-tagged <header> <value> :: print list of ID numbers matching search
+open-tagged <header> <value> :: pass dreams matching search as args to $EDITOR'
+random                       :: open a random dream in 'view'
+id-check                     :: check to make sure all dream ID numbers are
+                                contiguous
+USAGEMSG
+    exit 0
 }
 
-ensure '-d scripts' "Please run this script from the dreamdir root directory."
-ensure '-d graphs'  "Please run this script from the dreamdir root directory."
+ensure '-d scripts'  "Please run this script from the dreamdir root directory."
+ensure '-d graphs'   "Please run this script from the dreamdir root directory."
+
+[ -z "$1" ] && usagemsg
 
 case "$1" in
 "new")
-    lastNum=$(ls -1 *.dre | sort | tail -n 1 | cut -c 1-5)
+    lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
     echo -e "Id:\t$newNum" > $newNum.dre
@@ -30,21 +39,23 @@ case "$1" in
     echo -e "Tags:\t" >> $newNum.dre
     echo -e "\n" >> $newNum.dre
     cp $newNum.dre /tmp
-    vim $newNum.dre -c 6
+    if [ "$EDITOR" == "vim" ]; then
+        vim $newNum.dre +
+    else
+        "$EDITOR" $newNum.dre
+    fi
     diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
     if [ $? == 0 ]; then
-        echo "Deleting unmodified dream."
+        echo "Deleting unmodified dreamfile."
         rm $newNum.dre
         rm /tmp/$newNum.dre
     fi
     ;;
 
-"tag-list")
-    grep 'Tags:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > tags.dtags ;;
-"person-list")
-    grep 'People:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > people.dtags ;;
-"place-list")
-    grep 'Places:	' *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq > places.dtags ;;
+"header-list")
+    ensure "! -z \"$2\"" "Please specify a header type, like './dr header-list Tags'."
+    grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq
+    ;;
 
 "random")
     view $(ls -1 *.dre | shuf | head -n 1) ;;
@@ -91,19 +102,28 @@ PYTH_FINDTAGGED
     tempfile="/tmp/dreamsearch"
     ensure '! -e $tempfile' "Please check & remove existing temp file $tempfile and try again."
     header="$2"
-    shift; shift
+    shift; shift # value to search for remains in args
+
     python2 <<PYTH_SHOWTAGGED
 import scripts.ddirparse as dp
 dreams = dp.getDreamsTagged("$header", "$@")
 dreamStr = '.dre '.join([("%05i" % i) for i in dreams]) + '.dre'
-print dreamStr
 with open("$tempfile", "w") as f:
     f.write(dreamStr)
 PYTH_SHOWTAGGED
-    vim $(cat "$tempfile")
-    rm "$tempfile"
+    args=$(cat "$tempfile")
+
+    if [ "$args" == ".dre" ]; then
+        echo "Sorry, no results for that query."
+        rm "$tempfile"
+        exit 1
+    else
+        "$EDITOR" $args
+        rm "$tempfile"
+    fi
     ;;
 
 "help"|"--help"|*)
     usagemsg ;;
 esac
+exit 0

@@ -1,4 +1,10 @@
-# convert a range of dreams to LaTeX formatting
+"""
+Convert an interactively specified range of dreams to a format (mostly)
+suitable for use in LaTeX. You can't just paste it into a document and get
+beautiful output, but this script greatly reduces the amount of manual
+formatting drudgery required.
+"""
+
 import os
 import re
 import sys

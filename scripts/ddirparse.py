@@ -1,7 +1,17 @@
+# -*- coding: utf-8 -*-
+
+"""
+ddirparse Python library
+
+This module provides several convenient functions for pulling data from dreams
+in the dreamdir format. It is used in 'dr' and provided dreamdir scripts and is
+also appropriate for user scripts.
+"""
+
 import os
 import sys
 
-INPUT_DIRECTORY = '/home/soren/current/dreams/'
+DREAMDIR = '/home/soren/current/dreams/'
 
 def getAttribForAllDreams(attrib):
     """
@@ -54,14 +64,14 @@ def allDreamfiles():
     """
     Generator function for iterating over all dreamfiles in the directory.
 
-    Example (prints the contents of the dreamdir to the screen):
+    Example (prints the contents of the dreamdir to stdout):
     >>> for f in allDreamfiles():
     >>>     for line in f:
     >>>         print(line)
     """
-    listing = os.listdir(INPUT_DIRECTORY)
+    listing = os.listdir(DREAMDIR)
     for dreamfile in (i for i in listing if i.endswith('.dre')):
-        with open(os.path.join(INPUT_DIRECTORY, dreamfile)) as f:
+        with open(os.path.join(DREAMDIR, dreamfile)) as f:
             yield f
 
 

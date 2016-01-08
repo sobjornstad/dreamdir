@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""
+Produce an index of all the people in the dreamdir and the dreams they occur
+in. There is a friendly-looking output and one suitable for producing a LaTeX
+index, selectable with the '--index' command-line parameter for LaTeX mode.
+
+See also places-index.py.
+"""
+
 import ddirparse
 import sys
 

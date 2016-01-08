@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+This is nearly a copy of people-index.py -- see that for more details. Ideally
+these scripts would be refactored to be integrated together.
+"""
+
 import ddirparse
 import sys
 

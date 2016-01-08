@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+Produce data for dreamdir graphs. This script should not be run by itself but
+rather by RegeneratePlots.sh.
+"""
+
 import ddirparse
 
 OUTPUT_FILE = 'dotplot-data.csv'

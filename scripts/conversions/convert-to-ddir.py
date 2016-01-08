@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Convert my old dreams format to dreamdir format. This was a one-off script
+suited to my particular previous format, but I have saved and included it in
+case it is useful for reference while writing another converter.
+"""
+
 import re
 
 FNAME = "dreams.dre.conv"
