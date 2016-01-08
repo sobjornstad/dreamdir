@@ -14,7 +14,7 @@ new                          :: create a new dream with the next available ID
 header-list <header>         :: show a list of all values used for this header
                                 in any dream
 find-tagged <header> <value> :: print list of ID numbers matching search
-open-tagged <header> <value> :: pass dreams matching search as args to $EDITOR'
+open-tagged <header> <value> :: pass dreams matching search as args to \$EDITOR
 random                       :: open a random dream in 'view'
 validate                     :: format sanity check: ensure all dreams have IDs
                                 and dates and ID numbers are contiguous
@@ -29,15 +29,15 @@ ensure '-d graphs'   "Please run this script from the dreamdir root directory."
 
 case "$1" in
 "new")
+    today=$(date '+%Y-%m-%d')
     lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
-    echo -e "Id:\t$newNum" > $newNum.dre
-    today=$(date '+%Y-%m-%d')
+    echo -e "Id:\t$newNum"   > $newNum.dre
     echo -e "Date:\t$today" >> $newNum.dre
-    echo -e "Time:\t" >> $newNum.dre
-    echo -e "Tags:\t" >> $newNum.dre
-    echo -e "\n" >> $newNum.dre
+    echo -e "Time:\t"       >> $newNum.dre
+    echo -e "Tags:\t"       >> $newNum.dre
+    echo -e "\n"            >> $newNum.dre
     cp $newNum.dre /tmp
     if [ "$EDITOR" == "vim" ]; then
         vim $newNum.dre +
@@ -92,9 +92,10 @@ case "$1" in
     rm "$tempfile"
 
     # check for ID continuity
-    python2 <<PYTH_ID_CHECK
+    # works with Python 2 & 3 -- check dual compatibility after changes
+    python <<PYTH_ID_CHECK
 import subprocess, sys
-listing = subprocess.check_output(["ls"]).split('.dre\n')
+listing = subprocess.check_output(["ls"]).decode('utf-8').split('.dre\n')
 nums = []
 for i in listing:
     try:
@@ -115,7 +116,6 @@ for i in nums:
 print("ID continuity check...success")
 sys.exit(0)
 PYTH_ID_CHECK
-
     if [ $? != 0 ]; then
         exit 1
     fi
