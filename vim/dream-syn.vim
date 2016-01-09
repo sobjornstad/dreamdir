@@ -6,28 +6,19 @@ if exists("b:current_syntax")
 endif
 let b:current_syntax = "dream"
 
-" headers
-syntax match Property "^Id:\t"
-syntax match Property "^Date:\t"
-syntax match Property "^Lcd:\t"
-syntax match Property "^Tags:\t"
-syntax match Property "^People:\t"
-syntax match Property "^Time:\t"
-syntax match Property "^Places:\t"
+" headers / attributes
+syntax match Property "^.\{-\}:\t"
 
-""" dream formatting """
 " lucid sections
 syntax region Lucid start="{" end="}" contains=Emphasis,WL,Raw
-
-" backticks
-syntax match Raw "\`.\{-\}\`" contained
-syntax match Raw "\`.\{-\}\`"
 
 " RL brackets
 syntax region WL start="\[" end="\]" contained
 syntax region WL start="\[" end="\]"
-"syntax match WL "\[.\{-\}\]" contained
-"syntax match WL "\[.\{-\}\]"
+
+" backticks
+syntax match Raw "\`.\{-\}\`" contained
+syntax match Raw "\`.\{-\}\`"
 
 " emphasis
 syntax match Emphasis "\*.\{-\}\*" contained
