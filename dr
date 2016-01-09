@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # usagemsg()
-# Print the usage/help message and exit with status 0.
+# Print the usage/help message and exit.
 usagemsg() {
     cat <<USAGEMSG
 dr - Dreamdir utility program
@@ -17,8 +17,8 @@ validate                       :: format sanity check: ensure all dreams have ID
                                   and dates and ID numbers are contiguous
 find-tagged <header> [<value>] :: list dreams matching search
 open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
-show-headers                   :: list headers used in at least one dream
-header-list <header>           :: show a list of all values used for <header> in
+list-headers                   :: list headers used in at least one dream
+header-values <header>         :: show a list of all values used for <header> in
                                   any dream
 USAGEMSG
     exit 0
@@ -56,8 +56,8 @@ ensure() {
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the operation.
 didpush=0
-if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -d scripts && \
-      ! -d graphs && ! -f dr ]]; then
+if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
+      ! -d scripts && ! -d graphs && ! -f dr ]]; then
     if [[ -d "$DREAMDIR" ]]; then
         pushd "$DREAMDIR" > /dev/null
         didpush=1
@@ -102,11 +102,11 @@ case "$1" in
     rm /tmp/$newNum.dre
     ;;
 
-"show-headers")
-    grep -h '^.*: ' *.dre | sed -e 's/^\(.*\):    .*$/\1/' | sort | uniq ;;
+"list-headers")
+    grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq ;;
 
-"header-list")
-    ensure "! -z \"$2\"" "Please specify a header type, like './dr header-list Tags'."
+"header-values")
+    ensure "! -z \"$2\"" "Please specify a header type, like '$0 header-values Tags'."
     grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq
     ;;
 

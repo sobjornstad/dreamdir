@@ -17,6 +17,3 @@ for (year in minYear:maxYear) {
     fname <- paste(OUTPUT_LOCATION, year, "-recall-dotplot.svg", sep='')
     ggsave(filename=fname, width=8, height=5)
 }
-
-#datalevels=month.name[1:12])
-#data$month = month.abb[data$month]
