@@ -1,32 +1,82 @@
 #!/bin/bash
-. ~/bin/common.sh 1
 
+# usagemsg()
+# Print the usage/help message and exit with status 0.
 usagemsg() {
     cat <<USAGEMSG
-Dreamdir helper script
+dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad.
 Usage: $0 <action> [<action arguments>]
 
 Available actions:
-help                         :: show this usage message
-new                          :: create a new dream with the next available ID
-                                number
-header-list <header>         :: show a list of all values used for this header
-                                in any dream
-find-tagged <header> <value> :: print list of ID numbers matching search
-open-tagged <header> <value> :: pass dreams matching search as args to \$EDITOR
-random                       :: open a random dream in 'view'
-validate                     :: format sanity check: ensure all dreams have IDs
-                                and dates and ID numbers are contiguous
+help                           :: show this usage message
+new                            :: create a new dream with the next available ID
+                                  number and open it in \$EDITOR
+random                         :: show a random dream
+validate                       :: format sanity check: ensure all dreams have IDs
+                                  and dates and ID numbers are contiguous
+find-tagged <header> [<value>] :: list dreams matching search
+open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
+show-headers                   :: list headers used in at least one dream
+header-list <header>           :: show a list of all values used for <header> in
+                                  any dream
 USAGEMSG
     exit 0
 }
 
-ensure '-d scripts'  "Please run this script from the dreamdir root directory."
-ensure '-d graphs'   "Please run this script from the dreamdir root directory."
+# ensure()
+# Make sure a condition necessary for script execution is true.
+#
+# Arguments:
+#     $1 - an argument to `test`
+#     $2 - a message to display if the test fails
+#	  $3 - (optional, default 1) exit status to return if the test fails
+# State change & return:
+#     If the test evaluates non-zero, the script prints $2 and exits with
+#     status $3 (or 1). Else, control returns to the caller.
+ensure() {
+    eval "test $1"
+    if [ $? -ne 0 ]
+    then
+        if [ -z "$3" ]; then
+            exitval=1
+        else
+            exitval=$3
+        fi
+        echo $2
+        exit $exitval
+    else
+        return 0
+    fi
+}
 
+
+##### Begin main script #####
+
+# If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
+# change directory into it until the end of the operation.
+didpush=0
+if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -d scripts && \
+      ! -d graphs && ! -f dr ]]; then
+    if [[ -d "$DREAMDIR" ]]; then
+        pushd "$DREAMDIR" > /dev/null
+        didpush=1
+    else
+        echo "DREAMDIR environment variable is set to an invalid directory"
+        echo "($DREAMDIR). Exiting."
+        exit 1
+    fi
+fi
+
+# Confirm that we've ended up in a dreamdir.
+error="Please run this script from the dreamdir root directory, or set the "\
+"environment variable \$DREAMDIR to the path to your dreamdir."
+ensure '-d scripts' "$error"
+ensure '-d graphs'  "$error"
+ensure '-f dr'      "$error"
+
+# Do the appropriate action.
 [ -z "$1" ] && usagemsg
-
 case "$1" in
 "new")
     today=$(date '+%Y-%m-%d')
@@ -48,9 +98,12 @@ case "$1" in
     if [ $? == 0 ]; then
         echo "Deleting unmodified dreamfile."
         rm $newNum.dre
-        rm /tmp/$newNum.dre
     fi
+    rm /tmp/$newNum.dre
     ;;
+
+"show-headers")
+    grep -h '^.*: ' *.dre | sed -e 's/^\(.*\):    .*$/\1/' | sort | uniq ;;
 
 "header-list")
     ensure "! -z \"$2\"" "Please specify a header type, like './dr header-list Tags'."
@@ -58,7 +111,7 @@ case "$1" in
     ;;
 
 "random")
-    view $(ls -1 *.dre | shuf | head -n 1) ;;
+    cat $(ls -1 *.dre | shuf | head -n 1) ;;
 
 "validate")
     # set up temp file for checking id and date headers
@@ -69,7 +122,7 @@ case "$1" in
     # check for id problems
     checkFailedFor=$(grep -l 'Id:	' *.dre | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
-        echo "ID value check...success"
+        echo "ID value check...OK"
     else
         echo "ID value check...FAIL"
         echo "The files listed in the following diff are missing Id headers."
@@ -81,7 +134,7 @@ case "$1" in
     # check for date problems (similar -- consider a function)
     checkFailedFor=$(grep -l 'Date:	' *.dre | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
-        echo "Date check...success"
+        echo "Date check...OK"
     else
         echo "Date check...FAIL"
         echo "The files listed in the following diff are missing Date headers."
@@ -113,7 +166,7 @@ for i in nums:
         sys.exit(1)
     else:
         lastnum = i
-print("ID continuity check...success")
+print("ID continuity check...OK")
 sys.exit(0)
 PYTH_ID_CHECK
     if [ $? != 0 ]; then
@@ -124,6 +177,7 @@ PYTH_ID_CHECK
     ;;
 
 "find-tagged")
+    ensure "! -z \"$2\"" "Usage: $0 find-tagged <header> [<value>]."
     header="$2"
     shift; shift
     python2 <<PYTH_FINDTAGGED
@@ -135,7 +189,7 @@ PYTH_FINDTAGGED
 
 "open-tagged")
     # Do a find using the same method as find-tagged but then open those files
-    # in vim rather than just showing a list of the numbers.
+    # for editing rather than just showing a list of the numbers.
     tempfile="/tmp/dreamsearch"
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
     header="$2"
@@ -163,4 +217,6 @@ PYTH_SHOWTAGGED
 "help"|"--help"|*)
     usagemsg ;;
 esac
+
+[[ $didpush == 1 ]] && popd > /dev/null
 exit 0
