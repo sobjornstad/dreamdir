@@ -5,8 +5,10 @@
 usagemsg() {
     cat <<USAGEMSG
 dr - Dreamdir utility program
-Copyright (c) 2015-2016 Soren Bjornstad.
-Usage: $0 <action> [<action arguments>]
+Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+
+Usage: `basename $0` <action> [<action arguments>]
+An action can be abbreviated with its initials (e.g., help: h, open-tagged: ot)
 
 Available actions:
 help                           :: show this usage message
@@ -15,6 +17,8 @@ new                            :: create a new dream with the next available ID
 random                         :: show a random dream
 validate                       :: format sanity check: ensure all dreams have IDs
                                   and dates and ID numbers are contiguous
+cat [<file>]                   :: concatenate all dream files to form a single
+                                  output stream, written to stdout or <file>
 find-tagged <header> [<value>] :: list dreams matching search
 open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
 list-headers                   :: list headers used in at least one dream
@@ -43,34 +47,53 @@ ensure() {
         else
             exitval=$3
         fi
-        echo $2
+        echo -e "$2"
         exit $exitval
     else
         return 0
     fi
 }
 
+# die()
+# Exit the shell with exit status 1 after printing given error.
+#
+# Arguments:
+#     $1 - Message to complain with.
+die() {
+    echo "$1"
+    exit 1
+}
+
+# don't display the directory stack on push/pop
+pushd () {
+    command pushd "$@" > /dev/null
+}
+popd () {
+    command popd "$@" > /dev/null
+}
+
 
 ##### Begin main script #####
 
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
-# change directory into it until the end of the operation.
+# change directory into it until the end of the script.
 didpush=0
+oldpwd="$PWD" # if we need to know where the user is running the script from
 if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
       ! -d scripts && ! -d graphs && ! -f dr ]]; then
-    if [[ -d "$DREAMDIR" ]]; then
-        pushd "$DREAMDIR" > /dev/null
-        didpush=1
-    else
-        echo "DREAMDIR environment variable is set to an invalid directory"
+    didpush=1
+    pushd "$DREAMDIR"
+    if [[ $? != 0 ]]; then
+        echo "ERROR: The current directory is not a dreamdir and the DREAMDIR "
+        echo "environment variable is set to an invalid directory"
         echo "($DREAMDIR). Exiting."
         exit 1
     fi
 fi
 
 # Confirm that we've ended up in a dreamdir.
-error="Please run this script from the dreamdir root directory, or set the "\
-"environment variable \$DREAMDIR to the path to your dreamdir."
+error="Please run this script from a dreamdir, or set the environment\n"\
+"variable \$DREAMDIR to the path to your dreamdir."
 ensure '-d scripts' "$error"
 ensure '-d graphs'  "$error"
 ensure '-f dr'      "$error"
@@ -78,7 +101,7 @@ ensure '-f dr'      "$error"
 # Do the appropriate action.
 [ -z "$1" ] && usagemsg
 case "$1" in
-"new")
+"new"|"n")
     today=$(date '+%Y-%m-%d')
     lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
     let newNum=10#$lastNum+1
@@ -96,24 +119,41 @@ case "$1" in
     fi
     diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
     if [ $? == 0 ]; then
-        echo "Deleting unmodified dreamfile."
+        echo "Deleting unmodified dream file."
         rm $newNum.dre
     fi
     rm /tmp/$newNum.dre
     ;;
 
-"list-headers")
+"list-headers"|"lh")
     grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq ;;
 
-"header-values")
-    ensure "! -z \"$2\"" "Please specify a header type, like '$0 header-values Tags'."
+"header-values"|"hv")
+    ensure "! -z \"$2\"" "Please specify a header type, like '`basename $0` header-values Tags'."
     grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq
     ;;
 
-"random")
+"random"|"r")
     cat $(ls -1 *.dre | shuf | head -n 1) ;;
 
-"validate")
+"cat"|"c")
+    if [ ! -z "$2" ]; then
+        # save old stdout, then redirect it to specified file, changing into
+        # the directory 'dr' was run from to do the redirect if necessary
+        [ $didpush == 1 ] && pushd "$oldpwd"
+        ensure "! -f $2" "$2 exists, not overwriting."
+        exec 4<&1
+        exec 1>"$2" || die "Could not write to specified file, see above."
+        [ $didpush == 1 ] && popd
+    fi
+    for i in *.dre; do
+        cat "$i"
+        echo -en "\n\n"
+    done
+    [ ! -z "$2" ] && exec 1<&4 # restore old stdout
+    ;;
+
+"validate"|"v")
     # set up temp file for checking id and date headers
     tempfile="/tmp/dreamgrep" # contains list of dream files
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
@@ -176,8 +216,8 @@ PYTH_ID_CHECK
     echo "All tests succeeded."
     ;;
 
-"find-tagged")
-    ensure "! -z \"$2\"" "Usage: $0 find-tagged <header> [<value>]."
+"find-tagged"|"ft")
+    ensure "! -z \"$2\"" "Usage: `basename $0` find-tagged <header> [<value>]."
     header="$2"
     shift; shift
     python2 <<PYTH_FINDTAGGED
@@ -187,7 +227,7 @@ print "%i matches: %r" % (len(dreams), dreams)
 PYTH_FINDTAGGED
     ;;
 
-"open-tagged")
+"open-tagged"|"ot")
     # Do a find using the same method as find-tagged but then open those files
     # for editing rather than just showing a list of the numbers.
     tempfile="/tmp/dreamsearch"
@@ -214,9 +254,9 @@ PYTH_SHOWTAGGED
     fi
     ;;
 
-"help"|"--help"|*)
+"help"|"--help"|"h"|"-h"|*)
     usagemsg ;;
 esac
 
-[[ $didpush == 1 ]] && popd > /dev/null
+[[ $didpush == 1 ]] && popd
 exit 0
