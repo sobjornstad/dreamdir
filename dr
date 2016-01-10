@@ -8,7 +8,7 @@ dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 Usage: `basename $0` <action> [<action arguments>]
-An action can be abbreviated with its initials (e.g., help: h, open-tagged: ot)
+An action can be abbreviated by its initials (e.g., help: h, open-tagged: ot)
 
 Available actions:
 help                           :: show this usage message
@@ -21,9 +21,10 @@ cat [<file>]                   :: concatenate all dream files to form a single
                                   output stream, written to stdout or <file>
 find-tagged <header> [<value>] :: list dreams matching search
 open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
-list-headers                   :: list headers used in at least one dream
-header-values <header>         :: show a list of all values used for <header> in
-                                  any dream
+list-headers [-f]              :: list headers used in at least one dream (with
+                                  frequency if -f specified)
+header-values [-f] <header>    :: show a list of all values used for <header> in
+                                  any dream (include frequency if -f)
 USAGEMSG
     exit 0
 }
@@ -55,7 +56,7 @@ ensure() {
 }
 
 # die()
-# Exit the shell with exit status 1 after printing given error.
+# Unconditionally exit the shell with status 1 after printing the given error.
 #
 # Arguments:
 #     $1 - Message to complain with.
@@ -126,11 +127,29 @@ case "$1" in
     ;;
 
 "list-headers"|"lh")
-    grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq ;;
+    if [[ "$2" == "-f" ]]; then
+        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
+                uniq -c | sort -b -k 1rn -k 2
+    else
+        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq
+    fi
+    ;;
 
 "header-values"|"hv")
+    if [[ "$2" == "-f" || "$3" == "-f" ]]; then
+        showfreq=1
+        [[ "$2" == "-f" ]] && shift # force header type to $2 in either order
+    else
+        showfreq=0
+    fi
     ensure "! -z \"$2\"" "Please specify a header type, like '`basename $0` header-values Tags'."
-    grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort | uniq
+
+    results=$(grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort)
+    if [ $showfreq == 1 ]; then
+        echo "$results" | uniq -c | sort -b -k 1rn -k 2
+    else
+        echo "$results" | uniq
+    fi
     ;;
 
 "random"|"r")
