@@ -13,7 +13,7 @@ ensure '-f dr'      "$reason"
 pushd scripts
 
 python ./date-dotplot.py
-R --vanilla < ./date-dotplot.R
+R --vanilla --slave < ./date-dotplot.R
 
 rm dotplot-data.csv
 rm -f Rplots.pdf

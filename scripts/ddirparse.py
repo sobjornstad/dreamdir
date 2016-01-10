@@ -26,16 +26,17 @@ def getAttribForAllDreams(attrib):
         did = None
         for line in f:
             textline = line.strip()
+            if not textline: # blank line indicates end of headers
+                break
             if textline.startswith('Id:\t'):
                 did = textline.split('\t')[1].strip()
-            if textline.startswith('%s:' % attrib):
+            if textline.startswith('%s:\t' % attrib):
                 attribline = textline
-                break
 
         if not did:
-            print "ERROR: Missing id in a dream file!"
+            print "ERROR: Missing id in dream file %s!" % f.name
             sys.exit(1)
-        if not attribline:
+        if not attribline: # dream doesn't have the specified attribute at all
             continue
         did = _safeGetIntId(did)
         dreams[did] = attribline
@@ -48,17 +49,12 @@ def getDreamsTagged(attrib, tag):
     attributes.
     """
     dreams = []
-    for f in allDreamfiles():
-        for line in f:
-            linetext = line.strip()
-            if linetext.startswith('Id:\t'):
-                did = line.split('\t')[1].strip()
-            if linetext.startswith('%s:' % attrib):
-                if tag in linetext:
-                    dreams.append(_safeGetIntId(did))
-                break
+    attribDict = getAttribForAllDreams(attrib)
+    for dream, attribline in attribDict.iteritems():
+        values = [i.strip() for i in attribline.split('\t')[1].split(',')]
+        if tag in values:
+            dreams.append(_safeGetIntId(dream))
     return sorted(dreams)
-
 
 def allDreamfiles():
     """
