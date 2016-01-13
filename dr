@@ -144,7 +144,8 @@ case "$1" in
     fi
     ensure "! -z \"$2\"" "Please specify a header type, like '`basename $0` header-values Tags'."
 
-    results=$(grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | sed -e 's/, /\n/g' | sort)
+    results=$(grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | \
+            sed -e 's/, /\n/g' | sort)
     if [ $showfreq == 1 ]; then
         echo "$results" | uniq -c | sort -b -k 1rn -k 2
     else
@@ -206,8 +207,9 @@ case "$1" in
     # check for ID continuity
     # works with Python 2 & 3 -- check dual compatibility after changes
     python <<PYTH_ID_CHECK
-import subprocess, sys
-listing = subprocess.check_output(["ls"]).decode('utf-8').split('.dre\n')
+import os, sys
+listing = sorted(os.listdir('.'))
+listing = filter(lambda i: i.endswith('.dre'), listing)
 nums = []
 for i in listing:
     try:
