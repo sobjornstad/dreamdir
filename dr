@@ -1,4 +1,9 @@
 #!/bin/bash
+# dr - Dreamdir utility program
+# Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+
+# application version
+MYVERSION="0.1"
 
 # usagemsg()
 # Print the usage/help message and exit.
@@ -19,6 +24,8 @@ validate                       :: format sanity check: ensure all dreams have ID
                                   and dates and ID numbers are contiguous
 cat [<file>]                   :: concatenate all dream files to form a single
                                   output stream, written to stdout or <file>
+stats                          :: display dream statistics
+regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
 find-tagged <header> [<value>] :: list dreams matching search
 open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
 list-headers [-f]              :: list headers used in at least one dream (with
@@ -99,10 +106,14 @@ ensure '-d scripts' "$error"
 ensure '-d graphs'  "$error"
 ensure '-f dr'      "$error"
 
-# Do the appropriate action.
 [ -z "$1" ] && usagemsg
-case "$1" in
+action="$1"
+shift # arguments to actions start at $1
+
+case "$action" in
 "new"|"n")
+    oldUmask=$(umask)
+    umask 0177 # dreams default to 600 for basic privacy
     today=$(date '+%Y-%m-%d')
     lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
     let newNum=10#$lastNum+1
@@ -114,6 +125,7 @@ case "$1" in
     echo -e "\n"            >> $newNum.dre
     cp $newNum.dre /tmp
     if [ "$EDITOR" == "vim" ]; then
+        # use vim's option to place the cursor on the last line
         vim $newNum.dre +
     else
         "$EDITOR" $newNum.dre
@@ -124,10 +136,11 @@ case "$1" in
         rm $newNum.dre
     fi
     rm /tmp/$newNum.dre
+    umask $oldUmask
     ;;
 
 "list-headers"|"lh")
-    if [[ "$2" == "-f" ]]; then
+    if [[ "$1" == "-f" ]]; then
         grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
                 uniq -c | sort -b -k 1rn -k 2
     else
@@ -136,15 +149,16 @@ case "$1" in
     ;;
 
 "header-values"|"hv")
-    if [[ "$2" == "-f" || "$3" == "-f" ]]; then
+    if [[ "$1" == "-f" || "$2" == "-f" ]]; then
         showfreq=1
-        [[ "$2" == "-f" ]] && shift # force header type to $2 in either order
+        [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
     else
         showfreq=0
     fi
-    ensure "! -z \"$2\"" "Please specify a header type, like '`basename $0` header-values Tags'."
+    ensure "! -z \"$1\"" "Please specify a header type, like '`basename $0` header-values Tags'."
 
-    results=$(grep "$2:	" *.dre | cut -d ':' -f 3 | cut -c 2- | \
+    results=$(grep "$1:	" *.dre | cut -d ':' -f 3 | cut -c 2- | \
+    #results=$(grep "$1:	" *.dre | awk '{split($0, a, ":"); print a[4],a[3],a[2],a[1]}' | cut -c 2- | \
             sed -e 's/, /\n/g' | sort)
     if [ $showfreq == 1 ]; then
         echo "$results" | uniq -c | sort -b -k 1rn -k 2
@@ -153,24 +167,21 @@ case "$1" in
     fi
     ;;
 
-"random"|"r")
-    cat $(ls -1 *.dre | shuf | head -n 1) ;;
-
 "cat"|"c")
-    if [ ! -z "$2" ]; then
+    if [ ! -z "$1" ]; then
         # save old stdout, then redirect it to specified file, changing into
         # the directory 'dr' was run from to do the redirect if necessary
         [ $didpush == 1 ] && pushd "$oldpwd"
-        ensure "! -f $2" "$2 exists, not overwriting."
+        ensure "! -f $1" "$1 exists, not overwriting."
         exec 4<&1
-        exec 1>"$2" || die "Could not write to specified file, see above."
+        exec 1>"$1" || die "Could not write to specified file, see above."
         [ $didpush == 1 ] && popd
     fi
     for i in *.dre; do
         cat "$i"
         echo -en "\n\n"
     done
-    [ ! -z "$2" ] && exec 1<&4 # restore old stdout
+    [ ! -z "$1" ] && exec 1<&4 # restore old stdout
     ;;
 
 "validate"|"v")
@@ -180,24 +191,27 @@ case "$1" in
     ls *.dre | sort > "$tempfile"
 
     # check for id problems
-    checkFailedFor=$(grep -l 'Id:	' *.dre | sort | diff - "$tempfile")
+    checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' *.dre | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
         echo "ID value check...OK"
     else
         echo "ID value check...FAIL"
-        echo "The files listed in the following diff are missing Id headers."
+        echo "The files listed in the following diff have missing or incomplete"
+        echo "Id headers:"
         echo "$checkFailedFor"
         rm "$tempfile"
         exit 1
     fi
 
     # check for date problems (similar -- consider a function)
-    checkFailedFor=$(grep -l 'Date:	' *.dre | sort | diff - "$tempfile")
+    checkFailedFor=$(grep -l 'Date:	[12][0-9]\{3\}-[01][0-9]-[0123][0-9]' *.dre | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
         echo "Date check...OK"
     else
         echo "Date check...FAIL"
-        echo "The files listed in the following diff are missing Date headers."
+        echo "The files listed in the following diff have missing or invalid"
+        echo "Date headers, or represent implausible or impossible dates."
+        echo "(Note: dates must be in YYYY-MM-DD format.)"
         echo "$checkFailedFor"
         rm "$tempfile"
         exit 1
@@ -238,9 +252,9 @@ PYTH_ID_CHECK
     ;;
 
 "find-tagged"|"ft")
-    ensure "! -z \"$2\"" "Usage: `basename $0` find-tagged <header> [<value>]."
-    header="$2"
-    shift; shift
+    ensure "! -z \"$1\"" "Usage: `basename $0` find-tagged <header> [<value>]."
+    header="$1"
+    shift
     python2 <<PYTH_FINDTAGGED
 import scripts.ddirparse as dp
 dreams = dp.getDreamsTagged("$header", "$@")
@@ -253,8 +267,8 @@ PYTH_FINDTAGGED
     # for editing rather than just showing a list of the numbers.
     tempfile="/tmp/dreamsearch"
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
-    header="$2"
-    shift; shift # value to search for remains in args
+    header="$1"
+    shift # value to search for remains in args
 
     python2 <<PYTH_SHOWTAGGED
 import scripts.ddirparse as dp
@@ -274,6 +288,131 @@ PYTH_SHOWTAGGED
         rm "$tempfile"
     fi
     ;;
+
+"stats"|"s")
+    echo "Crunching the latest numbers for you, just a moment..."
+    colOn='[1;34m'
+    colOff='[0m'
+
+    numDreams=$(ls *.dre | wc -l)
+    wordCount=$(wc *.dre -w | tail -n 1 | cut -d ' ' -f 2)
+    avgWordCount=$((wordCount / numDreams))
+    dateStats=$(python2 <<'PYTH_DATEFREQ'
+# OUTPUT FORMAT:
+# <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
+import scripts.ddirparse as dp
+dateattrs = dp.getAttribForAllDreams('Date')
+dates = [i.split('\t')[1] for i in dateattrs.values()]
+freqs = {}
+for date in dates:
+    freqs[date] = freqs.get(date, 0) + 1
+keyList = freqs.keys()
+print len(keyList),
+print min(keyList),
+print max(keyList),
+# create list of keys sorted by the order of their values, min to max
+byFreq = sorted(keyList, cmp=lambda a,b: cmp(freqs[a],freqs[b]))
+print byFreq[-1],       # most number of dreams
+print freqs[byFreq[-1]] # how many?
+PYTH_DATEFREQ
+)
+    mostWordsDay=$(python2 <<'PYTH_MOSTWORDS'
+# Getting acceptable performance here requires unfolding some possible
+# functions and abstractions into this (nevertheless simple enough) loop.
+# TODO: This should be a function in scripts.ddirparse, I can think of tons of
+# other good things to do with this, like graphing and printing a table.
+import scripts.ddirparse as dp
+wcs = {}
+for f in dp.allDreamfiles():
+    date = None
+    counting = False
+    for line in f:
+        textline = line.strip()
+        if counting:
+            wcs[date] += len(textline.split())
+        else:
+            if textline.startswith('Date:\t'):
+                date = textline.split(':\t')[1].strip()
+            elif not textline:
+                # end of headers, start counter
+                counting = True
+                if date not in wcs:
+                    wcs[date] = 0
+# create list of keys sorted by the order of their values, max to min
+wcOrder = sorted(wcs.keys(), cmp=lambda a,b: cmp(wcs[b],wcs[a]))
+print wcOrder[0], wcs[wcOrder[0]], # # of dreams, date of it
+print len(dp.getDreamsTagged('Date', wcOrder[0])) # how many dreams
+PYTH_MOSTWORDS
+)
+    datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
+    avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
+    earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
+    latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
+    mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
+    numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
+
+    mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
+    mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
+    dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
+
+    lucidFilenames=$(grep -l 'Lucid:	' *.dre)
+    numLucids=$(echo $lucidFilenames | wc -w) # -w: $() collapses \n to space
+    percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
+    totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
+    avgLucidWordCount=$((totalLucidWordCount / numLucids))
+    percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
+    daysRecordedLds=$(python2 <<'PYTH_DAYS_LDS'
+# Output format: <days with recorded LDs>
+import scripts.ddirparse as dp
+lucids = dp.getDreamsTagged('Lucid', '')
+allDates = dp.getAttribForAllDreams('Date')
+allDates = {k: v.split('\t')[1] for k,v in allDates.iteritems()}
+# Use a dictionary to make future expansion to frequency, etc., easier
+lucidDays = {}
+for i in lucids:
+    lucidDays[allDates[i]] = lucidDays.get(allDates[i], 0) + 1
+print len(lucidDays)
+PYTH_DAYS_LDS
+)
+    percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
+
+# Consider, inserting commas into a number:
+# echo "$number" | rev | sed 's/\([0-9][0-9][0-9]\)\([0-9]\)/\1,\2/g' | rev
+    cat <<STATS_DISP
+${colOn}Recall and recording$colOff
+Total dreams: $numDreams
+Days with recorded dreams: $datesRecorded
+Average dreams per recorded day: $avgDreamsPerDay
+Date range: $earliestDate – $latestDate
+Day with most dreams: $mostDreamsDate ($numMostDreams)
+Total word count: $wordCount
+Average words per dream: $avgWordCount
+Day with highest word count: $mostWordsOnDay ($mostWords words over $dreamsInMostWordsDay dreams)
+
+${colOn}Lucidity$colOff
+Total lucid dreams: $numLucids
+Percentage lucid: $percentLucid%
+Days with recorded LDs: $daysRecordedLds
+Percentage recorded days with at least one LD: $percentDaysRecordedLds%
+Total lucid word count: $totalLucidWordCount
+Average words per lucid dream: $avgLucidWordCount
+Percentage of words in lucid dreams: $percentLucidWordCount%
+
+See also 'dr list-headers -f' and 'dr header-values -f [header]'.
+STATS_DISP
+    ;;
+
+"random"|"r")
+    cat $(ls -1 *.dre | shuf | head -n 1) ;;
+
+"regenerate-graphs"|"rg")
+    scripts/RegeneratePlots.sh ;;
+
+"become-lucid"|"bl")
+    echo "Nice try." ;;
+
+"version"|"--version"|"v")
+    echo "dr version $MYVERSION" ;;
 
 "help"|"--help"|"h"|"-h"|*)
     usagemsg ;;
