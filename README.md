@@ -18,7 +18,7 @@ Features:
 * The remainder of the dream file is simply the text of your entry, and you can do anything you like with it.
 * The provided shell script `dr` makes it easy to create new dreams, check the validity of your dreamdir format, and do common searches.
 * Example scripts are provided for tasks like graphing day-to-day recall and generating indexes. A small Python library is also available for user scripts.
-* The Dreamdir format itself and this documentation are public domain, and all code is provided under the MIT license.
+* Free and open source: the Dreamdir format itself and this documentation are public domain, and all code is provided under the MIT license (see the LICENSE file for details).
 
 
 Dreamdir format

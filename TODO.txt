@@ -1,0 +1,4 @@
+* README/docs
+* Reconsider which headers are automatic -- may be easier to delete than add
+* getDreamsTagged I think is broken if ‘Id’ isn’t the first header -- fix
+* Don’t require a fixed DREAMDIR value in ddirparse, that’s bad
