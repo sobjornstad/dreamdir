@@ -51,8 +51,8 @@ def getDreamsTagged(attrib, tag):
     dreams = []
     attribDict = getAttribForAllDreams(attrib)
     for dream, attribline in attribDict.iteritems():
-        values = [i.strip() for i in attribline.split('\t')[1].split(',')]
-        if tag in values:
+        content = attribline.split('\t')[1]
+        if tag in content:
             dreams.append(_safeGetIntId(dream))
     return sorted(dreams)
 
