@@ -290,6 +290,7 @@ PYTH_SHOWTAGGED
     ;;
 
 "stats"|"s")
+    # We should have a "today" section: what numbers were recorded today, how many words, &c.
     echo "Crunching the latest numbers for you, just a moment..."
     colOn='[1;34m'
     colOff='[0m'

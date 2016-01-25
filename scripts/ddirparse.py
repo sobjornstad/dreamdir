@@ -11,7 +11,7 @@ also appropriate for user scripts.
 import os
 import sys
 
-DREAMDIR = '/home/soren/current/dreams/'
+DREAMDIR = '/home/soren/dreams/'
 
 def getAttribForAllDreams(attrib):
     """

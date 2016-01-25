@@ -7,7 +7,8 @@ set tabstop=8
 set softtabstop=8
 set noexpandtab
 set spell
-set cpoptions+=J " consider sentences separated by double space; testing in dre
+set cpoptions+=J   " consider sentences separated by double space; testing in dre
+syn sync fromstart " lucid sections often get unhighlighted when they're long otherwise; performance not a concern as dream files are fairly short
 
 function DreamKeywordSearch()
     call inputsave()
