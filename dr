@@ -20,6 +20,9 @@ help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it in \$EDITOR
 random                         :: show a random dream
+last                           :: edit the dream with the highest number
+last-lucid                     :: edit the dream with the highest number that
+                                  has a Lucid header
 validate                       :: format sanity check: ensure all dreams have IDs
                                   and dates and ID numbers are contiguous
 cat [<file>]                   :: concatenate all dream files to form a single
@@ -290,10 +293,19 @@ PYTH_SHOWTAGGED
     ;;
 
 "stats"|"s")
-    # We should have a "today" section: what numbers were recorded today, how many words, &c.
     echo "Crunching the latest numbers for you, just a moment..."
     colOn='[1;34m'
     colOff='[0m'
+
+    today=$(date '+%Y-%m-%d')
+    filenamesToday=$(grep -l "Date:	$today" *.dre)
+    if [ ! -z "$filenamesToday" ]; then
+        dreamsToday=$(echo $filenamesToday | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
+        numDreamsToday=$(echo $dreamsToday | wc -w)
+        dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
+        lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
+        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | cut -d ' ' -f 2)
+    fi
 
     numDreams=$(ls *.dre | wc -l)
     wordCount=$(wc *.dre -w | tail -n 1 | cut -d ' ' -f 2)
@@ -379,7 +391,17 @@ PYTH_DAYS_LDS
 
 # Consider, inserting commas into a number:
 # echo "$number" | rev | sed 's/\([0-9][0-9][0-9]\)\([0-9]\)/\1,\2/g' | rev
-    cat <<STATS_DISP
+
+echo -e "${colOn}Today$colOff"
+echo -e "Today: $today"
+if [ -z "$filenamesToday" ]; then
+    echo -e "No dreams recorded today.\n"
+else
+    echo -e "Dreams recorded today: $numDreamsToday ($dreamsTodayDisp)"
+    echo -e "Lucid dreams recorded today: $lucidsToday"
+    echo -e "Total word count today: $wordCountToday\n"
+fi
+cat <<STATS_DISP
 ${colOn}Recall and recording$colOff
 Total dreams: $numDreams
 Days with recorded dreams: $datesRecorded
@@ -404,7 +426,13 @@ STATS_DISP
     ;;
 
 "random"|"r")
-    cat $(ls -1 *.dre | shuf | head -n 1) ;;
+    cat $(ls *.dre | shuf | head -n 1) ;;
+
+"last"|"l")
+    "$EDITOR" $(ls *.dre | tail -n 1) ;;
+
+"last-lucid"|"ll")
+    "$EDITOR" $(grep -l 'Lucid:	' *.dre | tail -n 1) ;;
 
 "regenerate-graphs"|"rg")
     scripts/RegeneratePlots.sh ;;
