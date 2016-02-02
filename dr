@@ -19,7 +19,7 @@ Available actions:
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it in \$EDITOR
-random                         :: show a random dream
+random                         :: print a random dream on stdout
 last                           :: edit the dream with the highest number
 last-lucid                     :: edit the dream with the highest number that
                                   has a Lucid header
@@ -95,7 +95,7 @@ if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
     didpush=1
     pushd "$DREAMDIR"
     if [[ $? != 0 ]]; then
-        echo "ERROR: The current directory is not a dreamdir and the DREAMDIR "
+        echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
         echo "environment variable is set to an invalid directory"
         echo "($DREAMDIR). Exiting."
         exit 1
@@ -119,6 +119,7 @@ case "$action" in
     umask 0177 # dreams default to 600 for basic privacy
     today=$(date '+%Y-%m-%d')
     lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
+    ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
     echo -e "Id:\t$newNum"   > $newNum.dre
@@ -136,9 +137,9 @@ case "$action" in
     diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
     if [ $? == 0 ]; then
         echo "Deleting unmodified dream file."
-        rm $newNum.dre
+        rm "$newNum.dre"
     fi
-    rm /tmp/$newNum.dre
+    rm "/tmp/$newNum.dre"
     umask $oldUmask
     ;;
 
@@ -305,6 +306,10 @@ PYTH_SHOWTAGGED
         dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
         lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
         wordCountToday=$(wc -w $filenamesToday | tail -n 1 | cut -d ' ' -f 2)
+        if [ -f $wordCountToday ]; then
+            # there was only one dream and no "total" line, so we pulled out the wrong thing
+            wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
+        fi
     fi
 
     numDreams=$(ls *.dre | wc -l)

@@ -11,7 +11,10 @@ also appropriate for user scripts.
 import os
 import sys
 
-DREAMDIR = '/home/soren/dreams/'
+# improve this for general use; for now this should work on both my machines
+DREAMDIR = os.getenv("DREAMDIR")
+if not DREAMDIR:
+    DREAMDIR = '/home/soren/current/dreams/'
 
 def getAttribForAllDreams(attrib):
     """
