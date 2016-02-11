@@ -73,7 +73,7 @@ Formatting guidelines
 
 These conventions are currently not known to any Dreamdir scripts, but they are rules I follow and may end up being recognized by scripts in future versions, so you may wish to follow them too. If you use the vim syntax highlighting file, these conventions are also recognized by it.
 
-* **Emphasis**: Use `*single stars*` around the area to be emphasized.
+* **Emphasis**: Use `*single stars*` or `_underlines_` around the area to be emphasized.
 * **Commentary**: Place notes that are not actually part of the dream in `[square brackets]`. The commentary may continue over multiple lines.
 * **Verbatim quoting**: Place text that is directly quoted from some earlier form of notes (such as a notebook you scribbled in in bed) in `` `backticks` ``.
 * **Lucid sections**: If you lucid dream, you can place sections where you knew you were dreaming in `{curly braces}`. I also use the header `Lucid:	1` to make it easier to find these dreams.
