@@ -305,7 +305,7 @@ PYTH_SHOWTAGGED
         numDreamsToday=$(echo $dreamsToday | wc -w)
         dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
         lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
-        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | cut -d ' ' -f 2)
+        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
         if [ -f $wordCountToday ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
             wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
