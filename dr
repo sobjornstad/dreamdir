@@ -372,6 +372,9 @@ PYTH_MOSTWORDS
     mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
     mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
     dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
+    mostWordsDream=$(wc -w *.dre | sort -n | sed -e '$ d' | tail -n 1)
+    mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
+    mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
 
     lucidFilenames=$(grep -l 'Lucid:	' *.dre)
     numLucids=$(echo $lucidFilenames | wc -w) # -w: $() collapses \n to space
@@ -416,6 +419,7 @@ Day with most dreams: $mostDreamsDate ($numMostDreams)
 Total word count: $wordCount
 Average words per dream: $avgWordCount
 Day with highest word count: $mostWordsOnDay ($mostWords words over $dreamsInMostWordsDay dreams)
+Single dream with highest word count: #$mostWordsDreamNum ($mostWordsDreamCount words)
 
 ${colOn}Lucidity$colOff
 Total lucid dreams: $numLucids
