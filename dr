@@ -430,6 +430,11 @@ Total lucid word count: $totalLucidWordCount
 Average words per lucid dream: $avgLucidWordCount
 Percentage of words in lucid dreams: $percentLucidWordCount%
 
+${colOn}Table summary${colOff}
+		Total	Avg	Max/Day	Today
+# of dreams	$numDreams	$avgDreamsPerDay	$numMostDreams	$numDreamsToday
+Word count	$wordCount	$avgWordCount	$mostWords	$wordCountToday
+
 See also 'dr list-headers -f' and 'dr header-values -f [header]'.
 STATS_DISP
     ;;
