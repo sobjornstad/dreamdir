@@ -21,10 +21,10 @@ syntax match Raw "\`.\{-\}\`" contained
 syntax match Raw "\`.\{-\}\`"
 
 " emphasis
-syntax match Emphasis "\*.\{-\}\*" contained
-syntax match Emphasis "_.\{-\}_" contained
-syntax match Emphasis "\*.\{-\}\*"
-syntax match Emphasis "_.\{-\}_"
+syntax match Emphasis "\*.\{-1,\}\*" contained
+syntax match Emphasis "_.\{-1,\}_" contained
+syntax match Emphasis "\*.\{-1,\}\*"
+syntax match Emphasis "_.\{-1,\}_"
 
 hi link Lucid Underlined
 hi link Property Keyword

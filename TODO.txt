@@ -5,3 +5,5 @@ For ddir publication:
 * Don’t require a fixed DREAMDIR value in ddirparse, that’s bad
 * Make plots that somehow show when people and places are dreamed about. (A dotplot would be *really* wide, might work but maybe multiple lines.)
   [Started work on this.]
+* ‘dr when’ command to find the date of a dream
+* and maybe a similar action for printing the headers to stdout
