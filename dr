@@ -171,6 +171,14 @@ case "$action" in
     fi
     ;;
 
+"grep"|"g")
+    results=$(grep -l "$*" [0-9][0-9][0-9][0-9][0-9].dre)
+    for i in $results
+    do
+        echo "$i"
+    done
+    ;;
+
 "cat"|"c")
     if [ ! -z "$1" ]; then
         # save old stdout, then redirect it to specified file, changing into
