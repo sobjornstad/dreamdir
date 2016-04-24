@@ -216,7 +216,7 @@ case "$action" in
     fi
 
     # check for date problems (similar -- consider a function)
-    checkFailedFor=$(grep -l 'Date:	[12][0-9]\{3\}-[01][0-9]-[0123][0-9]' *.dre | sort | diff - "$tempfile")
+    checkFailedFor=$(grep -l 'Date:	[12][901][0-9]\{2\}-[01][0-9]-[0123][0-9]' *.dre | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
         echo "Date check...OK"
     else
