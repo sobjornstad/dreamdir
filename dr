@@ -29,8 +29,8 @@ cat [<file>]                   :: concatenate all dream files to form a single
                                   output stream, written to stdout or <file>
 stats                          :: display dream statistics
 regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
-find-tagged <header> [<value>] :: list dreams matching search
-open-tagged <header> [<value>] :: pass dreams matching search as args to \$EDITOR
+find-tagged <header> [<regex>] :: list dreams matching Python regex
+open-tagged <header> [<regex>] :: pass find-tagged results as args to \$EDITOR
 list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
 header-values [-f] <header>    :: show a list of all values used for <header> in

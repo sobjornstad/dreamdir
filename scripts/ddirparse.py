@@ -9,12 +9,22 @@ also appropriate for user scripts.
 """
 
 import os
+import re
 import sys
 
 # improve this for general use; for now this should work on both my machines
 DREAMDIR = os.getenv("DREAMDIR")
 if not DREAMDIR:
     DREAMDIR = '/home/soren/current/dreams/'
+
+def setDreamdir(path):
+    """
+    Specify a non-standing and non-environment-variable value for the
+    dreamdir location, to persist for the remainder of the module's lifetime
+    unless changed again.
+    """
+    global DREAMDIR
+    DREAMDIR = path
 
 def getAttribForAllDreams(attrib):
     """
@@ -54,9 +64,11 @@ def getDreamsTagged(attrib, tag):
     dreams = []
     attribDict = getAttribForAllDreams(attrib)
     for dream, attribline in attribDict.iteritems():
-        content = attribline.split('\t')[1]
-        if tag in content:
-            dreams.append(_safeGetIntId(dream))
+        content = [i.strip() for i in attribline.split('\t')[1].split(',')]
+        for contentItem in content:
+            if re.match(tag, contentItem) is not None:
+                dreams.append(_safeGetIntId(dream))
+                break
     return sorted(dreams)
 
 def allDreamfiles():
