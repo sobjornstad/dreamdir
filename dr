@@ -21,8 +21,6 @@ new                            :: create a new dream with the next available ID
                                   number and open it in \$EDITOR
 edit                           :: edit one or more dreams (more information:
                                   'dr help edit')
-find-tagged <header> [<regex>] :: list dreams matching Python regex
-open-tagged <header> [<regex>] :: pass find-tagged results as args to \$EDITOR
 list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
 header-values [-f] <header>    :: show a list of all values used for <header> in
@@ -45,21 +43,36 @@ dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 Usage: `basename $0` edit [<options>] <expression> [<expression args>]
-Open the dreams specified by the edit expression <expression> in \$EDITOR.
+Open the dreams specified by the search expression <expression> in \$EDITOR.
 
-An edit expression is one or more of the following:
-* a dream number
-* a filename globbing pattern
+A search expression is one or more of the following:
+* a dream number (leading zeroes allowed but not required)
+* a shell globbing pattern for some dream numbers (leading zeroes required)
 * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
 * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
-* g[rep] <regex> :: select all dreams containing the pattern anywhere in the
-                    file (whether in headers, notes, or text)
+* g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the file
+                    (whether in headers, notes, or text)
 * r[andom] [<N>] :: select N dreams randomly from your dreamdir, in numerical
                     order (add -s if desired)
+* t[agged] <header> <hregex> :: select dreams with <header> matching <hregex>
 
 N defaults to 1 if not provided.
 
-The following options may be used with any edit expression:
+<hregex>es are EREs matched only within comma-separated items. For instance,
+with the header "Tags: foo, bar baz":
+    REGEX       :: MATCHES?
+    foo         :: yes
+    bar         :: yes
+    baz         :: yes
+    az          :: yes
+    .*baz       :: yes
+    ba.*az      :: yes
+    o, ba       :: no
+    foo.*baz    :: no
+You may want to consider padding your regex with '\\b' on either side to
+require full-word matches; otherwise 'cat' matches 'catalog' and 'duplicate.'
+
+The following options may be used with any search expression:
 -r: Reverse the order of returned results.
 -s: Randomize (shuffle) the order of returned results.
 -l: Just print the filenames that would be passed to the editor to stdout,
@@ -71,11 +84,14 @@ dr edit 006[12]?            :: edit dreams 610-629
 dr edit last 4 890          :: edit the last four dreams and #890
 dr edit -l 20 0[12]01*      :: list the filenames of #20, #1010-1019, #2010-2019
 dr edit -s l 6              :: edit the last six dreams in a random order
-dr edit grep 'Maud\|Ellie'  :: edit dreams with a line containing "Maud" or
-                               "Ellie"
+dr edit grep 'foo|bar'      :: edit dreams with a line containing the substring
+                               "foo" or "bar"
 dr edit -r g 'XX' b 20      :: edit the dream 20 from the end, then dreams
                                containing "XX" in reverse numerical order
 dr edit -l random 5         :: display the filenames of five random dreams
+dr edit tagged People Maud  :: edit dreams in which Maud appeared
+dr edit t Tags '\\bcat\\b'    :: display dreams tagged with 'cat', but not
+                               'caterwaul' or 'dedicate'
 USAGEMSG
     exit 0
 }
@@ -122,6 +138,88 @@ pushd () {
 }
 popd () {
     command popd "$@" > /dev/null
+}
+
+dreamfind() {
+    # Parse optional arguments to edit.
+    doReverse=0
+    doShuf=0
+    #doUseEditor=1
+    while getopts rsl opt; do
+        case $opt in
+        r)
+            doReverse=1 ;;
+        s)
+            doShuf=1 ;;
+        #l)
+            #doUseEditor=0 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Now compile a list of all the dreams we've specified.
+    args=""
+    while [ ! -z "$1" ]; do
+        if [[ $1 =~ ^[0-9][0-9]*$ ]]
+        then
+            let num=10#$1  # in case user uses leading zeroes
+            printf -v newargs '%05d.dre' "$num"
+        else case "$1" in
+        "last"|"back"|"l"|"b")
+            howMany="$2"
+            [ -z "$2" ] && howMany=1
+            newargs=$(ls *.dre | tail -n $howMany)
+            if [[ "$1" == "back" || "$1" == "b" ]]; then
+                newargs=$(echo "$newargs" | head -n 1)
+            fi
+            [ ! -z "$2" ] && shift # automatic shift handles only one arg
+            ;;
+        
+        "grep"|"g")
+            ensure "! -z \"$2\"" "'grep' needs a pattern. (See 'dr help edit' for help.)"
+            newargs=$(grep -El "$2" *.dre)
+            shift # automatic shift handles only one arg
+            ;;
+
+        "random"|"r")
+            howMany=$2
+            [ -z "$howMany" ] && howMany=1
+            newargs=$(ls *.dre | shuf | head -n $howMany | sort)
+            ;;
+
+        "tagged"|"t")
+            #TODO: It would be wise to do more testing on this regex...
+            usage="Usage: dr edit tagged <header regex> <value regex>"
+            ensure "! -z \"$2\"" "$usage"
+            ensure "! -z \"$3\"" "$usage"
+            newargs=$(grep -El "$2:	(|.*,|.*, )[^,]*$3[^,]*(,|\b)" *.dre)
+            shift; shift
+            ;;
+
+        *) # filename glob
+            [[ $(echo "$1" | grep ".dre") ]] && die "Globbing patterns should not include '.dre'. (See 'dr help edit' for help.)"
+            newargs="$1.dre"
+        esac
+        fi  # regex matches
+
+        # Add args parsed to the complete list and proceed. Note that if a type
+        # of expression has more than one argument, it's responsible for doing
+        # the extra shifts before it finishes.
+        args="$args $newargs"
+        shift
+    done
+
+    # apply option flags
+    args=$(echo $args | cat -) # looks like a no-op, but it expands globs
+    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
+    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
+
+    # sanity check
+    [ -z "$args" ] && die "No results."
+    for i in $args
+    do
+        ensure "-f $i" "Matched nonexistent file '$i'; please check your search terms and try again."
+    done
 }
 
 
@@ -212,17 +310,6 @@ case "$action" in
     fi
     ;;
 
-"grep"|"g")
-    results=$(grep -l "$*" [0-9][0-9][0-9][0-9][0-9].dre)
-    echo -n "["
-    echo -n "$(echo $results | wc -w) matches: "
-    for i in $results
-    do
-        echo -n "$((10#`basename $i .dre`)), "
-    done
-    echo -e "\b\b]"
-    ;;
-
 "cat"|"c")
     if [ ! -z "$1" ]; then
         # save old stdout, then redirect it to specified file, changing into
@@ -305,44 +392,6 @@ PYTH_ID_CHECK
     fi
 
     echo "All tests succeeded."
-    ;;
-
-"find-tagged"|"ft")
-    ensure "! -z \"$1\"" "Usage: `basename $0` find-tagged <header> [<value>]."
-    header="$1"
-    shift
-    python2 <<PYTH_FINDTAGGED
-import scripts.ddirparse as dp
-dreams = dp.getDreamsTagged("$header", "$@")
-print "%i matches: %r" % (len(dreams), dreams)
-PYTH_FINDTAGGED
-    ;;
-
-"open-tagged"|"ot")
-    # Do a find using the same method as find-tagged but then open those files
-    # for editing rather than just showing a list of the numbers.
-    tempfile="/tmp/dreamsearch"
-    ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
-    header="$1"
-    shift # value to search for remains in args
-
-    python2 <<PYTH_SHOWTAGGED
-import scripts.ddirparse as dp
-dreams = dp.getDreamsTagged("$header", "$@")
-dreamStr = '.dre '.join([("%05i" % i) for i in dreams]) + '.dre'
-with open("$tempfile", "w") as f:
-    f.write(dreamStr)
-PYTH_SHOWTAGGED
-    args=$(cat "$tempfile")
-
-    if [ "$args" == ".dre" ]; then
-        echo "Sorry, no results for that query."
-        rm "$tempfile"
-        exit 1
-    else
-        "$EDITOR" $args
-        rm "$tempfile"
-    fi
     ;;
 
 "stats"|"s")
@@ -494,76 +543,14 @@ STATS_DISP
 "edit"|"e")
     [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help edit' for help."
 
-    # Parse optional arguments to edit.
-    doReverse=0
-    doShuf=0
     doUseEditor=1
     while getopts rsl opt; do
         case $opt in
-        r)
-            doReverse=1 ;;
-        s)
-            doShuf=1 ;;
         l)
             doUseEditor=0 ;;
         esac
     done
-    shift $((OPTIND-1))
-
-    # Now compile a list of all the dreams we've specified.
-    args=""
-    while [ ! -z "$1" ]; do
-        if [[ $1 =~ ^[0-9][0-9]*$ ]]
-        then
-            let num=10#$1  # in case user uses leading zeroes
-            printf -v newargs '%05d.dre' "$num"
-        else case "$1" in
-        "last"|"back"|"l"|"b")
-            howMany="$2"
-            [ -z "$2" ] && howMany=1
-            newargs=$(ls *.dre | tail -n $howMany)
-            if [[ "$1" == "back" || "$1" == "b" ]]; then
-                newargs=$(echo "$newargs" | head -n 1)
-            fi
-            [ ! -z "$2" ] && shift # automatic shift handles only one arg
-            ;;
-        
-        "grep"|"g")
-            ensure "! -z \"$2\"" "'grep' needs a pattern. (See 'dr help edit' for help.)"
-            newargs=$(grep -l "$2" *.dre)
-            shift # automatic shift handles only one arg
-            ;;
-
-        "random"|"r")
-            howMany=$2
-            [ -z "$howMany" ] && howMany=1
-            newargs=$(ls *.dre | shuf | head -n $howMany | sort)
-            ;;
-
-        *) # filename glob
-            [[ $(echo "$1" | grep ".dre") ]] && die "Globbing patterns should not include '.dre'. (See 'dr help edit' for help.)"
-            newargs="$1.dre"
-        esac
-        fi  # regex matches
-
-        # Add args parsed to the complete list and proceed. Note that if a type
-        # of expression has more than one argument, it's responsible for doing
-        # the extra shifts before it finishes.
-        args="$args $newargs"
-        shift
-    done
-
-    # apply option flags
-    args=$(echo $args | cat -) # looks like a no-op, but it expands globs
-    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
-    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
-
-    # sanity check
-    [ -z "$args" ] && die "No results."
-    for i in $args
-    do
-        ensure "-f $i" "Matched nonexistent file '$i'; please check your search terms and try again."
-    done
+    dreamfind $*
 
     if [ $doUseEditor -eq 1 ]; then
         $EDITOR $args
@@ -585,7 +572,7 @@ STATS_DISP
     echo "dr version $MYVERSION" ;;
 
 "help"|"--help"|"h"|"-h"|*)
-    if [ "$1" == "edit" ]; then
+    if [[ "$1" == "edit" || "$1" == "e" ]]; then
         usagemsg_edit
     else
         usagemsg
