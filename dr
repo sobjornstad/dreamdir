@@ -3,7 +3,7 @@
 # Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 # application version
-MYVERSION="0.1"
+MYVERSION="0.2"
 
 # usagemsg()
 # Print the usage/help message and exit.
@@ -19,22 +19,63 @@ Available actions:
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it in \$EDITOR
-random                         :: print a random dream on stdout
-last                           :: edit the dream with the highest number
-last-lucid                     :: edit the dream with the highest number that
-                                  has a Lucid header
-validate                       :: format sanity check: ensure all dreams have IDs
-                                  and dates and ID numbers are contiguous
-cat [<file>]                   :: concatenate all dream files to form a single
-                                  output stream, written to stdout or <file>
-stats                          :: display dream statistics
-regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
+edit                           :: edit one or more dreams (more information:
+                                  'dr help edit')
 find-tagged <header> [<regex>] :: list dreams matching Python regex
 open-tagged <header> [<regex>] :: pass find-tagged results as args to \$EDITOR
 list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
 header-values [-f] <header>    :: show a list of all values used for <header> in
                                   any dream (include frequency if -f)
+last-lucid                     :: edit the dream with the highest number that
+                                  has a Lucid header
+cat [<file>]                   :: concatenate all dream files to form a single
+                                  output stream, written to stdout or <file>
+regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
+stats                          :: display dream statistics
+validate                       :: format sanity check: ensure all dreams have IDs
+                                  and dates and ID numbers are contiguous
+USAGEMSG
+    exit 0
+}
+
+usagemsg_edit() {
+    cat <<USAGEMSG
+dr - Dreamdir utility program
+Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+
+Usage: `basename $0` edit [<options>] <expression> [<expression args>]
+Open the dreams specified by the edit expression <expression> in \$EDITOR.
+
+An edit expression is one or more of the following:
+* a dream number
+* a filename globbing pattern
+* b[ack] [<N>]   :: select the dream N positions from the end, inclusive
+* l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
+* g[rep] <regex> :: select all dreams containing the pattern anywhere in the
+                    file (whether in headers, notes, or text)
+* r[andom] [<N>] :: select N dreams randomly from your dreamdir, in numerical
+                    order (add -s if desired)
+
+N defaults to 1 if not provided.
+
+The following options may be used with any edit expression:
+-r: Reverse the order of returned results.
+-s: Randomize (shuffle) the order of returned results.
+-l: Just print the filenames that would be passed to the editor to stdout,
+    rather than actually starting it.
+
+Examples:
+dr edit 50                  :: edit dream number 50
+dr edit 006[12]?            :: edit dreams 610-629
+dr edit last 4 890          :: edit the last four dreams and #890
+dr edit -l 20 0[12]01*      :: list the filenames of #20, #1010-1019, #2010-2019
+dr edit -s l 6              :: edit the last six dreams in a random order
+dr edit grep 'Maud\|Ellie'  :: edit dreams with a line containing "Maud" or
+                               "Ellie"
+dr edit -r g 'XX' b 20      :: edit the dream 20 from the end, then dreams
+                               containing "XX" in reverse numerical order
+dr edit -l random 5         :: display the filenames of five random dreams
 USAGEMSG
     exit 0
 }
@@ -173,10 +214,13 @@ case "$action" in
 
 "grep"|"g")
     results=$(grep -l "$*" [0-9][0-9][0-9][0-9][0-9].dre)
+    echo -n "["
+    echo -n "$(echo $results | wc -w) matches: "
     for i in $results
     do
-        echo "$i"
+        echo -n "$((10#`basename $i .dre`)), "
     done
+    echo -e "\b\b]"
     ;;
 
 "cat"|"c")
@@ -447,11 +491,86 @@ See also 'dr list-headers -f' and 'dr header-values -f [header]'.
 STATS_DISP
     ;;
 
-"random"|"r")
-    cat $(ls *.dre | shuf | head -n 1) ;;
+"edit"|"e")
+    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help edit' for help."
 
-"last"|"l")
-    "$EDITOR" $(ls *.dre | tail -n 1) ;;
+    # Parse optional arguments to edit.
+    doReverse=0
+    doShuf=0
+    doUseEditor=1
+    while getopts rsl opt; do
+        case $opt in
+        r)
+            doReverse=1 ;;
+        s)
+            doShuf=1 ;;
+        l)
+            doUseEditor=0 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Now compile a list of all the dreams we've specified.
+    args=""
+    while [ ! -z "$1" ]; do
+        if [[ $1 =~ ^[0-9][0-9]*$ ]]
+        then
+            let num=10#$1  # in case user uses leading zeroes
+            printf -v newargs '%05d.dre' "$num"
+        else case "$1" in
+        "last"|"back"|"l"|"b")
+            howMany="$2"
+            [ -z "$2" ] && howMany=1
+            newargs=$(ls *.dre | tail -n $howMany)
+            if [[ "$1" == "back" || "$1" == "b" ]]; then
+                newargs=$(echo "$newargs" | head -n 1)
+            fi
+            [ ! -z "$2" ] && shift # automatic shift handles only one arg
+            ;;
+        
+        "grep"|"g")
+            ensure "! -z \"$2\"" "'grep' needs a pattern. (See 'dr help edit' for help.)"
+            newargs=$(grep -l "$2" *.dre)
+            shift # automatic shift handles only one arg
+            ;;
+
+        "random"|"r")
+            howMany=$2
+            [ -z "$howMany" ] && howMany=1
+            newargs=$(ls *.dre | shuf | head -n $howMany | sort)
+            ;;
+
+        *) # filename glob
+            [[ $(echo "$1" | grep ".dre") ]] && die "Globbing patterns should not include '.dre'. (See 'dr help edit' for help.)"
+            newargs="$1.dre"
+        esac
+        fi  # regex matches
+
+        # Add args parsed to the complete list and proceed. Note that if a type
+        # of expression has more than one argument, it's responsible for doing
+        # the extra shifts before it finishes.
+        args="$args $newargs"
+        shift
+    done
+
+    # apply option flags
+    args=$(echo $args | cat -) # looks like a no-op, but it expands globs
+    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
+    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
+
+    # sanity check
+    [ -z "$args" ] && die "No results."
+    for i in $args
+    do
+        ensure "-f $i" "Matched nonexistent file '$i'; please check your search terms and try again."
+    done
+
+    if [ $doUseEditor -eq 1 ]; then
+        $EDITOR $args
+    else
+        echo $args
+    fi
+    ;;
 
 "last-lucid"|"ll")
     "$EDITOR" $(grep -l 'Lucid:	' *.dre | tail -n 1) ;;
@@ -466,7 +585,12 @@ STATS_DISP
     echo "dr version $MYVERSION" ;;
 
 "help"|"--help"|"h"|"-h"|*)
-    usagemsg ;;
+    if [ "$1" == "edit" ]; then
+        usagemsg_edit
+    else
+        usagemsg
+    fi
+    ;;
 esac
 
 [[ $didpush == 1 ]] && popd
