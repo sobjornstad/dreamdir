@@ -3,7 +3,5 @@ For ddir publication:
 * Reconsider which headers are automatic -- may be easier to delete than add
 * getDreamsTagged I think is broken if ‘Id’ isn’t the first header -- fix
 * Don’t require a fixed DREAMDIR value in ddirparse, that’s bad
-* Make plots that somehow show when people and places are dreamed about. (A dotplot would be *really* wide, might work but maybe multiple lines.)
-  [Started work on this.]
 * ‘dr when’ command to find the date of a dream
-* and maybe a similar action for printing the headers to stdout
+* and maybe a similar action for printing all headers to stdout, or the values of certain headers
