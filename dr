@@ -13,17 +13,19 @@ dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 Usage: `basename $0` <action> [<action arguments>]
-An action can be abbreviated by its initials (e.g., help: h, list-headers: lh)
+An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 
-Available actions:
+                             ACTIONS
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it for editing
 edit <search-expr>             :: edit dreams matching an expression
 find <search-expr>             :: show dream numbers matching an expression
 filename-display <search-expr> :: show dream filenames matching an expression
-winnow <search-expr>           :: read filenames from stdin and remove those
-                                  that do not match an expression
+setdiff <search-expr>          :: read filenames from stdin and XOR them with
+                                  the results of another query
+winnow <search-expr>           :: read filenames from stdin and AND them with
+                                  the results of another query
 list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
 header-values [-f] <header>    :: show a list of all values used for <header> in
@@ -44,16 +46,18 @@ USAGEMSG
 
 usagemsg_edit() {
     cat <<USAGEMSG
-dr - Dreamdir utility program
-Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+                             DR - SEARCHING
+`basename $0` <edit|find|filename-display|setdiff|winnow> [<options>] <expr>
 
-Usage: `basename $0` <edit|find|filename-display|winnow> [<options>] <expression>
-Select dreams matching search expression <expression> and:
-    edit - pass their filenames as arguments to \$EDITOR
-    find - print a list of dream numbers
-    filename-display - print a list of dream filenames
-    winnow - read list of filenames from stdin, remove non-matches
+Select dreams matching search expression <expr> and:
+  e[dit] - pass their filenames as arguments to \$EDITOR
+  f[ind] - print a list of dream numbers
+  f[ilename-]d[isplay] - print a list of dream filenames
+  s[etdiff] - read filenames from stdin, print dreams present in stdin but not
+      query, and vice versa
+  w[innow] - read filenames from stdin, remove non-matches
 
+                             SEARCH EXPRESSIONS
 A search expression is one or more of the following (implicitly ORed together):
 * a dream number (leading zeroes allowed but not required)
 * a shell globbing pattern for some dream numbers (leading zeroes required)
@@ -67,38 +71,44 @@ A search expression is one or more of the following (implicitly ORed together):
 
 N defaults to 1 if not provided.
 
+                             HREGEXES
 <hregex>es are EREs matched only within comma-separated items. For instance,
 with the header "Tags: foo, bar baz":
-    REGEX       :: MATCHES?
-    foo         :: yes
-    bar         :: yes
-    baz         :: yes
-    az          :: yes
-    .*baz       :: yes
-    ba.*az      :: yes
-    o, ba       :: no
-    foo.*baz    :: no
+  REGEX     :: MATCHES?
+  foo       :: yes
+  bar       :: yes
+  baz       :: yes
+  az        :: yes
+  .*baz     :: yes
+  ba.*az    :: yes
+  o, ba     :: no
+  foo.*baz  :: no
 You may want to consider padding your regex with '\\b' on either side to
 require full-word matches; otherwise 'cat' matches 'catalog' and 'duplicate.'
 
+                             OPTIONS
 The following options may be used with any search expression:
--r: Reverse the order of returned results.
--s: Randomize (shuffle) the order of returned results.
+  -r: Reverse the order of returned results.
+  -s: Randomize (shuffle) the order of returned results.
 
-Examples:
-dr edit 50                  :: edit dream number 50
-dr filename-display 006[12]?:: edit dreams 610-629
-dr edit last 4 890          :: edit the last four dreams and #890
-dr find 20 0[12]01*         :: list dream numbers #20, #1010-1019, #2010-2019
-dr edit -s l 6              :: edit the last six dreams in a random order
-dr find grep 'foo|bar'      :: list dreams with a line containing the substring
-                               "foo" or "bar"
-dr edit -r g 'XX' b 20      :: edit the dream 20 from the end, then dreams
-                               containing "XX" in reverse numerical order
-dr edit -l random 5         :: display the filenames of five random dreams
-dr edit tagged People Maud  :: edit dreams in which Maud appeared
-dr edit t Tags '\\bcat\\b'    :: display dreams tagged with 'cat', but not
-                               'caterwaul' or 'dedicate'
+                             EXAMPLES
+dr edit 50                    :: edit dream number 50
+dr filename-display 006[12]?  :: show the filenames of dreams #610-629
+dr edit last 4 890            :: edit the last four dreams and #890
+dr find 20 0[12]01*           :: list dream numbers #20, #1010-1019, #2010-2019
+dr edit -s last 6             :: edit the last six dreams in a random order
+dr find grep 'foo|bar'        :: list dream numbers with a line containing the
+                                 substring "foo" or "bar"
+dr edit -r grep 'XX' back 20  :: edit the dream 20 from the end, then dreams
+                                 containing "XX" in reverse numerical order
+dr filename-display random 5  :: display the filenames of five random dreams
+dr edit tagged People Maud    :: edit dreams in which Maud appeared
+dr edit tagged Tags '\\bcat\\b' :: display dreams tagged with 'cat', but not
+                                 'caterwaul' or 'dedicate'
+dr fd 006[12]? |              :: display filenames for dreams #610-629 that
+  dr winnow tagged Tags 'dog'    are also tagged with 'dog'              
+dr fd t Tags '\bcat\b' |      :: show dreams that are not tagged 'cat' but
+  dr setdiff grep '\bcat\b'      do use the word 'cat' somewhere else
 USAGEMSG
     exit 0
 }
@@ -192,13 +202,12 @@ dreamfind() {
             ;;
 
         "tagged"|"t")
-            #TODO: It would be wise to do more testing on this regex...
             usage="Usage: dr edit tagged <header regex> <value regex>"
             ensure "! -z \"$2\"" "$usage"
             ensure "! -z \"$3\"" "$usage"
             header="$2"
             pattern=$(echo "$3" | sed -e 's/\./[^@]/')
-            newargs=$(grep -m 1 "$header:	" *.dre | sed -e "s/$header:        //" | sed -e 's/, /@@@@@/g' | grep "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            newargs=$(grep -m 1 "$header:	" *.dre | sed -e "s/$header:        //" | sed -e 's/, /@@@@@/g' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
 
@@ -557,7 +566,8 @@ STATS_DISP
     #TODO: Differentiate from filename-display by cleaning up output
     [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
-    echo $args
+    results=$(echo $args | sed -e 's/\.dre 00*/, /g' | sed -e 's/^00*/[/' | sed -e 's/\.dre$/]/')
+    echo "$(echo $results | wc -w) matches: $results"
     ;;
 
 "filename-display"|"fd")
@@ -572,10 +582,20 @@ STATS_DISP
     $EDITOR $args
     ;;
 
-"winnow"|"w")
+"winnow"|"w"|"setdiff"|"sd")
+    #TODO: Add arguments to open results in editor or change to find syntax
+    if [[ "$action" == "winnow" || "$action" == "w" ]];
+    then commparams="-12"
+    else commparams="-3"
+    fi
+
     read toFilter
     dreamfind "$@"
-    comm -1 -2 <(echo $toFilter | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort) 
+    results=$(comm $commparams <(echo $toFilter | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
+    # since comm needs sorted content, we have to reapply the order changes
+    [ $doReverse == 1 ] && results=$(echo "$results" | tac)
+    [ $doShuf == 1 ]    && results=$(echo "$results" | shuf)
+    echo $results
     ;;
 
 "last-lucid"|"ll")
