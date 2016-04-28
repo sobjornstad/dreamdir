@@ -351,6 +351,7 @@ stats_display() {
 # OUTPUT FORMAT:
 # <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
 import scripts.ddirparse as dp
+dp.setDreamdir("$PWD")
 dateattrs = dp.getAttribForAllDreams('Date')
 dates = [i.split('\t')[1] for i in dateattrs.values()]
 freqs = {}
@@ -372,6 +373,7 @@ PYTH_DATEFREQ
 # TODO: This should be a function in scripts.ddirparse, I can think of tons of
 # other good things to do with this, like graphing and printing a table.
 import scripts.ddirparse as dp
+dp.setDreamdir("$PWD")
 wcs = {}
 for f in dp.allDreamfiles():
     date = None
@@ -417,6 +419,7 @@ PYTH_MOSTWORDS
     daysRecordedLds=$(python2 <<'PYTH_DAYS_LDS'
 # Output format: <days with recorded LDs>
 import scripts.ddirparse as dp
+dp.setDreamdir("$PWD")
 lucids = dp.getDreamsTagged('Lucid', '')
 allDates = dp.getAttribForAllDreams('Date')
 allDates = {k: v.split('\t')[1] for k,v in allDates.iteritems()}

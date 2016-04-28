@@ -12,10 +12,7 @@ import os
 import re
 import sys
 
-# improve this for general use; for now this should work on both my machines
-DREAMDIR = os.getenv("DREAMDIR")
-if not DREAMDIR:
-    DREAMDIR = '/home/soren/current/dreams/'
+DREAMDIR = os.getenv("DREAMDIR") # None if not set
 
 def setDreamdir(path):
     """
@@ -80,6 +77,12 @@ def allDreamfiles():
     >>>     for line in f:
     >>>         print(line)
     """
+    if not DREAMDIR:
+        print "Error: Dreamdir not specified! To fix this error, use the"
+        print "setDreamdir() function after importing this module, or set the"
+        print "DREAMDIR environment variable."
+        sys.exit(1)
+
     listing = os.listdir(DREAMDIR)
     for dreamfile in (i for i in listing if i.endswith('.dre')):
         with open(os.path.join(DREAMDIR, dreamfile)) as f:

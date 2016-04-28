@@ -6,6 +6,8 @@
 
 . ~/bin/common.sh 1
 
+[ -z "$DREAMDIR" ] && DREAMDIR=$PWD
+cd $DREAMDIR
 reason="Please run this script from the dreamdir root directory."
 ensure '-d scripts' "$reason"
 ensure '-d graphs'  "$reason"
