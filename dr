@@ -31,6 +31,8 @@ list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
 header-values [-f] <header>    :: show a list of all values used for <header> in
                                   any dream (include frequency if -f)
+header-replace                 :: regex search-and-replace on headers; type
+                                  '`basename $0` help header-replace' for info
 last-lucid                     :: edit the dream with the highest number that
                                   has a Lucid header
 cat [<file>]                   :: concatenate all dream files to form a single
@@ -116,6 +118,55 @@ USAGEMSG
     exit 0
 }
 
+usagemsg_header_replace () {
+    cat <<USAGEMSG
+                             DR - HEADER-REPLACE
+`basename $0` header-replace [-f] <header> <find> <replace> [<filenames...>]
+
+In <filenames> or the entire dreamdir, replace instances of <find> in header
+<header> with <replace>. <Find>, <header>, and <replace> are EREs.
+
+<find> will not match across multiple comma-separated values, but it may match
+and change several tags separately. For example, for the header
+'Tags: bar, baz', we could find 'ba' and replace with 'fo' and obtain
+'Tags: for, foz', but a search for 'r, b' will not match anything.
+
+Each comma-separated value is considered a separate line, so we can search for
+'^foobar$' to match only the entire tag 'foobar' and not, say, 'foobarbaz'.
+
+<find> and <replace> should not contain pipe characters (|).
+
+                             PREVIEWING
+Without the -f option, dr produces a preview of the changes your search-and-
+replace will make. Typical output looks like this:
+
+    $ dr header-replace Tags "foo" "quux"
+    ** Running search-and-replace on all dreams. **
+
+    01223.dre:
+      -foo
+      +quux
+      =Tags:	quux, bar, baz
+
+    Changes will affect 1 file.
+
+One section will be produced for each dream affected. The first lines
+underneath are a diff between the two sets of values. The last line shows the
+new header line that will be substituted in if you accept the changes.
+
+                             RUNNING
+After checking over the preview, rerun the command with the -f option to
+actually make the changes. Naturally, this can be quite dangerous with the
+wrong regexes (e.g., a replacement of '.' with 'x' will completely trash all
+your headers), so it's wise to make a backup first. You'll also be required to
+confirm interactively that you've double-checked the preview.
+
+(NOTE: If the replace command gets interrupted in the middle, it is possible,
+though very unlikely, that one of your dreams will have been deleted; you can
+check this by seeing if 'dr validate' fails with a missing ID number. If this
+does occur you will find the content in the file 'repl.tmp' in your dreamdir.)
+USAGEMSG
+}
 
 ##### UTILITY FUNCTIONS #####
 # ensure()
@@ -541,7 +592,6 @@ case "$action" in
     ;;
 
 "find"|"f")
-    #TODO: Differentiate from filename-display by cleaning up output
     [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     results=$(echo $args | sed -e 's/\.dre 00*/, /g' | sed -e 's/^00*/[/' | sed -e 's/\.dre$/]/')
@@ -598,6 +648,74 @@ case "$action" in
     fi
     ;;
 
+"header-replace"|"hr")
+    #TODO: Might be wise to do some validation of user's input first; both here and in similar places, what if there's a / or | in the input regex?
+    #TODO: Take an automatic backup before beginning?
+    if [ "$1" == "-f" ]; then
+        echo "WARNING: You are about to run a regex search-and-replace on all"
+        echo "specified dreams. Please check the results without -f first!"
+        read -p "Do you really want to continue (y/n)? " doCont
+        if [ "$doCont" != "y" ]; then
+            exit 0
+        fi
+        doReplace=1
+        shift
+    else
+        doReplace=0
+    fi
+
+    header="$1"
+    searchpat="$2"
+    replpat="$3"
+    if [ -z "$4" ]; then
+        filenames=$(ls *.dre)
+        #TODO: Suggest having this show number of total dreams in dreamdir.
+        echo -e "** Running search-and-replace on all dreams. **\n"
+    else
+        filenames=""
+        numChange=0
+        while [ ! -z "$4" ]; do
+            numChange=$((numChange+1))
+            filenames="$filenames $4"
+            shift
+        done
+        #TODO FIXME: Make this not incorrectly pluralize 1 file.
+        echo -e "** Running search-and-replace on the $numChange dreams specified. **\n"
+    fi
+
+    numAffected=0
+    for filename in $filenames
+    do
+        headerline=$(grep -m 1 "$header:	" "$filename")
+        oldtags=$(echo "$headerline" | sed -e "s/$header:	//" | sed -e 's/, /\n/g')
+        newtags=$(echo "$oldtags" | sed -re "s/$searchpat/$replpat/g")
+        diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' | sed -e 's/^/  /')
+
+        if [ -z "$diffs" ]; then
+            continue
+        fi
+
+        replwith="$header:	$(echo "$newtags" | tr '\n' ',' | sed -e 's/,/, /g' | sed -e 's/, $//')"
+        if [ $doReplace == 1 ]; then
+            sed -e "s|$headerline|$replwith|" "$filename" > repl.tmp
+            rm "$filename"
+            mv repl.tmp "$filename"
+            echo "$filename modified"
+        else
+            echo -e "$filename:\n$diffs\n  =$replwith\n"
+        fi
+        numAffected=$((numAffected+1))
+    done
+    #TODO FIXME: Make this not incorrectly pluralize 1 file.
+    if [ $doReplace == 1 ]; then
+        echo "Changed $numAffected files."
+    else
+        echo "Changes will affect $numAffected files."
+    fi
+
+    ;;
+
+
 "cat"|"c")
     if [ ! -z "$1" ]; then
         # save old stdout, then redirect it to specified file, changing into
@@ -636,9 +754,12 @@ case "$action" in
     echo "dr version $MYVERSION" ;;
 
 "help"|"--help"|"h"|"-h"|*)
-    if [[ "$1" == "search" || "$1" == "s" || "$1" == "edit" || "$1" == "find" ]]
-    then usagemsg_edit
-    else usagemsg
+    if [[ "$1" == "search" || "$1" == "s" || "$1" == "edit" || "$1" == "find" ]]; then
+        usagemsg_edit
+    elif [[ "$1" == "header-replace" || "$1" == "hr" ]]; then
+        usagemsg_header_replace
+    else
+        usagemsg
     fi
     ;;
 esac
