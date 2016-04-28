@@ -23,6 +23,29 @@ def setDreamdir(path):
     global DREAMDIR
     DREAMDIR = path
 
+
+### General tools ####
+def allDreamfiles():
+    """
+    Generator function for iterating over all dreamfiles in the directory.
+
+    Example (prints the contents of the dreamdir to stdout):
+    >>> for f in allDreamfiles():
+    >>>     for line in f:
+    >>>         print(line)
+    """
+    if not DREAMDIR:
+        print "Error: Dreamdir not specified! To fix this error, use the"
+        print "setDreamdir() function after importing this module, or set the"
+        print "DREAMDIR environment variable."
+        sys.exit(1)
+
+    listing = os.listdir(DREAMDIR)
+    for dreamfile in (i for i in listing if i.endswith('.dre')):
+        with open(os.path.join(DREAMDIR, dreamfile)) as f:
+            yield f
+
+### Dream headers ###
 def getAttribForAllDreams(attrib):
     """
     Given an /attrib/ (e.g., 'Id', 'People'), return a dict containing an
@@ -68,26 +91,75 @@ def getDreamsTagged(attrib, tag):
                 break
     return sorted(dreams)
 
-def allDreamfiles():
+
+##### Word count #####
+# Our word count is superior to standard utilities because it ignores headers
+# and can split the word count into normal, lucid, and notes portions. It's
+# certainly slower, but in my testing it took only about 1.7ms per file.
+
+def countFile(f):
     """
-    Generator function for iterating over all dreamfiles in the directory.
-
-    Example (prints the contents of the dreamdir to stdout):
-    >>> for f in allDreamfiles():
-    >>>     for line in f:
-    >>>         print(line)
+    Count words in file f, ignoring headers entirely and splitting word count
+    into normal, lucid, and notes (bracketed) portions.
     """
-    if not DREAMDIR:
-        print "Error: Dreamdir not specified! To fix this error, use the"
-        print "setDreamdir() function after importing this module, or set the"
-        print "DREAMDIR environment variable."
-        sys.exit(1)
+    words = {'normal': 0, 'lucid': 0, 'notes': 0}
+    flags = {'inHeaders': True, 'inLucid': False, 'inNotes': False}
+    inWord = False
+    for line in f:
+        # skip ahead until we get to the end of the headers
+        if flags['inHeaders']:
+            if not line.strip():
+                flags['inHeaders'] = False
+            continue
 
-    listing = os.listdir(DREAMDIR)
-    for dreamfile in (i for i in listing if i.endswith('.dre')):
-        with open(os.path.join(DREAMDIR, dreamfile)) as f:
-            yield f
+        for char in line:
+            if re.match(r"[\w']", char):
+                if not inWord: # we just started a word, inc count
+                    if flags['inNotes']:
+                        words['notes'] += 1
+                    elif flags['inLucid']:
+                        words['lucid'] += 1
+                    else:
+                        words['normal'] += 1
+                inWord = True
+            else: # leave word
+                inWord = False
 
+            if char == "[":
+                flags['inNotes'] = True
+            elif char == "]":
+                flags['inNotes'] = False
+            elif char == "{":
+                flags['inLucid'] = True
+            elif char == "}":
+                flags['inLucid'] = False
+    return words
+
+def countAll():
+    "Sum word counts of all files in the dreamdir."
+    words = {'normal': 0, 'lucid': 0, 'notes': 0}
+    for i in allDreamfiles():
+        for k, v in countFile(i).iteritems():
+            words[k] += v
+    return words
+
+def getCount(filenames=None, normal=True, lucid=True, notes=True, asString=False):
+    "Get summed count of a list of filenames."
+    words = {'normal': 0, 'lucid': 0, 'notes': 0}
+    if filenames is None:
+        words = countAll()
+    else:
+        for file in filenames:
+            for k, v in countFile(open(file)).iteritems():
+                words[k] += v
+
+    doReturn = [field for include, field
+                in zip((normal, lucid, notes), ('normal', 'lucid', 'notes'))
+                if include]
+    if asString:
+        return ' '.join(str(words[i]) for i in doReturn)
+    else:
+        return {k:v for k,v in words.iteritems() if k in doReturn}
 
 
 ### Private helper functions ###
