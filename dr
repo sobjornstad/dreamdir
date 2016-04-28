@@ -398,7 +398,7 @@ stats_display() {
     numDreams=$(ls *.dre | wc -l)
     wordCount=$(wc *.dre -w | tail -n 1 | cut -d ' ' -f 2)
     avgWordCount=$((wordCount / numDreams))
-    dateStats=$(python2 <<'PYTH_DATEFREQ'
+    dateStats=$(python2 <<PYTH_DATEFREQ
 # OUTPUT FORMAT:
 # <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
 import scripts.ddirparse as dp
@@ -418,7 +418,7 @@ print byFreq[-1],       # most number of dreams
 print freqs[byFreq[-1]] # how many?
 PYTH_DATEFREQ
 )
-    mostWordsDay=$(python2 <<'PYTH_MOSTWORDS'
+    mostWordsDay=$(python2 <<PYTH_MOSTWORDS
 # Getting acceptable performance here requires unfolding some possible
 # functions and abstractions into this (nevertheless simple enough) loop.
 # TODO: This should be a function in scripts.ddirparse, I can think of tons of
@@ -467,7 +467,7 @@ PYTH_MOSTWORDS
     totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
     avgLucidWordCount=$((totalLucidWordCount / numLucids))
     percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
-    daysRecordedLds=$(python2 <<'PYTH_DAYS_LDS'
+    daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
 # Output format: <days with recorded LDs>
 import scripts.ddirparse as dp
 dp.setDreamdir("$PWD")
