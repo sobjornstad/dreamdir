@@ -20,6 +20,7 @@ An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it for editing
+get-header <header> <dreams>   :: print values of header for one or more dreams
 edit <search-expr>             :: edit dreams matching an expression
 find <search-expr>             :: show dream numbers matching an expression
 filename-display <search-expr> :: show dream filenames matching an expression
@@ -627,6 +628,15 @@ NEWDREAM
     [ $doReverse == 1 ] && results=$(echo "$results" | tac)
     [ $doShuf == 1 ]    && results=$(echo "$results" | shuf)
     echo $results
+    ;;
+
+"get-header"|"gh")
+    usageMsg="Usage: `basename $0` get-header <header> <files to display>"
+    ensure "! -z \"$1\""
+    ensure "! -z \"$2\""
+    header=$1
+    shift
+    grep "$header:	" $@ | sed -e 's/Date:	\(.*\)/\1/'
     ;;
 
 "list-headers"|"lh")
