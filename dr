@@ -175,7 +175,7 @@ USAGEMSG
 # Arguments:
 #     $1 - an argument to `test`
 #     $2 - a message to display if the test fails
-#	  $3 - (optional, default 1) exit status to return if the test fails
+#     $3 - (optional, default 1) exit status to return if the test fails
 # State change & return:
 #     If the test evaluates non-zero, the script prints $2 and exits with
 #     status $3 (or 1). Else, control returns to the caller.
@@ -201,7 +201,7 @@ ensure() {
 # Arguments:
 #     $1 - Message to complain with.
 die() {
-    echo "$1"
+    echo -e "$1"
     exit 1
 }
 
@@ -564,19 +564,28 @@ case "$action" in
     ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
-    echo -e "Id:\t$newNum"   > $newNum.dre
-    echo -e "Date:\t$today" >> $newNum.dre
-    echo -e "Time:\t"       >> $newNum.dre
-    echo -e "Tags:\t"       >> $newNum.dre
-    echo -e "\n"            >> $newNum.dre
-    cp $newNum.dre /tmp
+
+    # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
+    ed <<NEWDREAM > /dev/null 2>&1
+i
+Id:	$newNum
+Date:	$today
+Time:	
+Tags:	
+
+.
+w $newNum.dre
+w /tmp/$newNum.dre
+q
+NEWDREAM
+
     if [ "$EDITOR" == "vim" ]; then
         # use vim's option to place the cursor on the last line
-        vim $newNum.dre +
+        vim "$newNum.dre" +
     else
-        "$EDITOR" $newNum.dre
+        "$EDITOR" "$newNum.dre"
     fi
-    diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
+    diff "/tmp/$newNum.dre" "$newNum.dre" > /dev/null 2>&1
     if [ $? == 0 ]; then
         echo "Deleting unmodified dream file."
         rm "$newNum.dre"
@@ -586,20 +595,20 @@ case "$action" in
     ;;
 
 "edit"|"e")
-    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
+    [ -z "$1" ] && die "'`basename $0` edit' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     $EDITOR $args
     ;;
 
 "find"|"f")
-    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
+    [ -z "$1" ] && die "'`basename $0` find' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     results=$(echo $args | sed -e 's/\.dre 00*/, /g' | sed -e 's/^00*/[/' | sed -e 's/\.dre$/]/')
     echo "$(echo $results | wc -w) matches: $results"
     ;;
 
 "filename-display"|"fd")
-    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
+    [ -z "$1" ] && die "'`basename $0` filename-display' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     echo $args
     ;;
@@ -630,6 +639,7 @@ case "$action" in
     ;;
 
 "header-values"|"hv")
+    ensure "! -z \"$1" "Usage: `basename $0` header-values [-f] <header>"
     if [[ "$1" == "-f" || "$2" == "-f" ]]; then
         showfreq=1
         [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
@@ -649,6 +659,12 @@ case "$action" in
     ;;
 
 "header-replace"|"hr")
+    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> [<filenames>]"
+    ensure "! -z \"$1\"" "$usageMsg"
+    ensure "! -z \"$2\"" "$usageMsg"
+    ensure "! -z \"$3\"" "$usageMsg"
+    [[ "$2" =~ "|" || "$3" =~ "|" ]] && die "Pipes (|) are not valid in search/replace regexes!\n$usageMsg"
+
     #TODO: Might be wise to do some validation of user's input first; both here and in similar places, what if there's a / or | in the input regex?
     #TODO: Take an automatic backup before beginning?
     if [ "$1" == "-f" ]; then
@@ -675,8 +691,9 @@ case "$action" in
         filenames=""
         numChange=0
         while [ ! -z "$4" ]; do
-            numChange=$((numChange+1))
+            ensure "-f \"$4\"" "$usageMsg\nThe file \"$4\" does not exist."
             filenames="$filenames $4"
+            numChange=$((numChange+1))
             shift
         done
         #TODO FIXME: Make this not incorrectly pluralize 1 file.
@@ -688,7 +705,7 @@ case "$action" in
     do
         headerline=$(grep -m 1 "$header:	" "$filename")
         oldtags=$(echo "$headerline" | sed -e "s/$header:	//" | sed -e 's/, /\n/g')
-        newtags=$(echo "$oldtags" | sed -re "s/$searchpat/$replpat/g")
+        newtags=$(echo "$oldtags" | sed -re "s|$searchpat|$replpat|g")
         diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' | sed -e 's/^/  /')
 
         if [ -z "$diffs" ]; then
