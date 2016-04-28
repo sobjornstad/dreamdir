@@ -5,6 +5,7 @@
 # application version
 MYVERSION="0.3"
 
+##### DOCUMENTATION / HELP MESSAGES #####
 # usagemsg()
 # Print the usage/help message and exit.
 usagemsg() {
@@ -44,6 +45,8 @@ USAGEMSG
     exit 0
 }
 
+# usagemsg_edit()
+# Print the help on searching and exit.
 usagemsg_edit() {
     cat <<USAGEMSG
                              DR - SEARCHING
@@ -113,6 +116,8 @@ USAGEMSG
     exit 0
 }
 
+
+##### UTILITY FUNCTIONS #####
 # ensure()
 # Make sure a condition necessary for script execution is true.
 #
@@ -157,6 +162,10 @@ popd () {
     command popd "$@" > /dev/null
 }
 
+##### COMPLICATED ROUTINES #####
+# dreamfind()
+# Parse a search-expr; called by find/edit/winnow/etc to do the dirty
+# filtering work.
 dreamfind() {
     # Parse optional arguments to edit.
     doReverse=0
@@ -244,112 +253,10 @@ dreamfind() {
     done
 }
 
-
-##### Begin main script #####
-
-# If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
-# change directory into it until the end of the script.
-didpush=0
-oldpwd="$PWD" # if we need to know where the user is running the script from
-if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
-      ! -d scripts && ! -d graphs && ! -f dr ]]; then
-    didpush=1
-    pushd "$DREAMDIR"
-    if [[ $? != 0 ]]; then
-        echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
-        echo "environment variable is set to an invalid directory"
-        echo "($DREAMDIR). Exiting."
-        exit 1
-    fi
-fi
-
-# Confirm that we've ended up in a dreamdir.
-error="Please run this script from a dreamdir, or set the environment\n"\
-"variable \$DREAMDIR to the path to your dreamdir."
-ensure '-d scripts' "$error"
-ensure '-d graphs'  "$error"
-ensure '-f dr'      "$error"
-
-[ -z "$1" ] && usagemsg
-action="$1"
-shift # arguments to actions start at $1
-
-case "$action" in
-"new"|"n")
-    oldUmask=$(umask)
-    umask 0177 # dreams default to 600 for basic privacy
-    today=$(date '+%Y-%m-%d')
-    lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
-    ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
-    let newNum=10#$lastNum+1
-    printf -v newNum '%05d' "$newNum"
-    echo -e "Id:\t$newNum"   > $newNum.dre
-    echo -e "Date:\t$today" >> $newNum.dre
-    echo -e "Time:\t"       >> $newNum.dre
-    echo -e "Tags:\t"       >> $newNum.dre
-    echo -e "\n"            >> $newNum.dre
-    cp $newNum.dre /tmp
-    if [ "$EDITOR" == "vim" ]; then
-        # use vim's option to place the cursor on the last line
-        vim $newNum.dre +
-    else
-        "$EDITOR" $newNum.dre
-    fi
-    diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
-    if [ $? == 0 ]; then
-        echo "Deleting unmodified dream file."
-        rm "$newNum.dre"
-    fi
-    rm "/tmp/$newNum.dre"
-    umask $oldUmask
-    ;;
-
-"list-headers"|"lh")
-    if [[ "$1" == "-f" ]]; then
-        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
-                uniq -c | sort -b -k 1rn -k 2
-    else
-        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq
-    fi
-    ;;
-
-"header-values"|"hv")
-    if [[ "$1" == "-f" || "$2" == "-f" ]]; then
-        showfreq=1
-        [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
-    else
-        showfreq=0
-    fi
-    ensure "! -z \"$1\"" "Please specify a header type, like '`basename $0` header-values Tags'."
-
-    results=$(grep "$1:	" *.dre | cut -d ':' -f 3 | cut -c 2- | \
-    #results=$(grep "$1:	" *.dre | awk '{split($0, a, ":"); print a[4],a[3],a[2],a[1]}' | cut -c 2- | \
-            sed -e 's/, /\n/g' | sort)
-    if [ $showfreq == 1 ]; then
-        echo "$results" | uniq -c | sort -b -k 1rn -k 2
-    else
-        echo "$results" | uniq
-    fi
-    ;;
-
-"cat"|"c")
-    if [ ! -z "$1" ]; then
-        # save old stdout, then redirect it to specified file, changing into
-        # the directory 'dr' was run from to do the redirect if necessary
-        [ $didpush == 1 ] && pushd "$oldpwd"
-        ensure "! -f $1" "$1 exists, not overwriting."
-        exec 4<&1
-        exec 1>"$1" || die "Could not write to specified file, see above."
-        [ $didpush == 1 ] && popd
-    fi
-    for i in *.dre; do
-        cat "$i"
-        echo -en "\n\n"
-    done
-    [ ! -z "$1" ] && exec 1<&4 # restore old stdout
-    ;;
-
-"validate"|"v")
+# validate_dreamdir()
+# Check to see if our dreamdir's format is okay. Extracted from the main case
+# statement purely because it's long and makes the script harder to read.
+validate_dreamdir() {
     # set up temp file for checking id and date headers
     tempfile="/tmp/dreamgrep" # contains list of dream files
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
@@ -414,9 +321,11 @@ PYTH_ID_CHECK
     fi
 
     echo "All tests succeeded."
-    ;;
+}
 
-"stats"|"s")
+# stats_display()
+# Calculate and display textual statistics.
+stats_display() {
     echo "Crunching the latest numbers for you, just a moment..."
     colOn='[1;34m'
     colOff='[0m'
@@ -560,6 +469,72 @@ Word count	$wordCount	$avgWordCount	$mostWords	$wordCountToday
 
 See also 'dr list-headers -f' and 'dr header-values -f [header]'.
 STATS_DISP
+}
+
+
+##### MAIN SCRIPT #####
+# If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
+# change directory into it until the end of the script.
+didpush=0
+oldpwd="$PWD" # if we need to know where the user is running the script from
+if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
+      ! -d scripts && ! -d graphs && ! -f dr ]]; then
+    didpush=1
+    pushd "$DREAMDIR"
+    if [[ $? != 0 ]]; then
+        echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
+        echo "environment variable is set to an invalid directory"
+        echo "($DREAMDIR). Exiting."
+        exit 1
+    fi
+fi
+
+# Confirm that we've ended up in a dreamdir.
+error="Please run this script from a dreamdir, or set the environment\n"\
+"variable \$DREAMDIR to the path to your dreamdir."
+ensure '-d scripts' "$error"
+ensure '-d graphs'  "$error"
+ensure '-f dr'      "$error"
+
+# Figure out what action we're going to do and jump to appropriate code.
+[ -z "$1" ] && usagemsg
+action="$1"
+shift # arguments to actions start at $1
+
+case "$action" in
+"new"|"n")
+    oldUmask=$(umask)
+    umask 0177 # dreams default to 600 for basic privacy
+    today=$(date '+%Y-%m-%d')
+    lastNum=$(ls *.dre | sort | tail -n 1 | cut -c 1-5)
+    ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
+    let newNum=10#$lastNum+1
+    printf -v newNum '%05d' "$newNum"
+    echo -e "Id:\t$newNum"   > $newNum.dre
+    echo -e "Date:\t$today" >> $newNum.dre
+    echo -e "Time:\t"       >> $newNum.dre
+    echo -e "Tags:\t"       >> $newNum.dre
+    echo -e "\n"            >> $newNum.dre
+    cp $newNum.dre /tmp
+    if [ "$EDITOR" == "vim" ]; then
+        # use vim's option to place the cursor on the last line
+        vim $newNum.dre +
+    else
+        "$EDITOR" $newNum.dre
+    fi
+    diff /tmp/$newNum.dre $newNum.dre > /dev/null 2>&1
+    if [ $? == 0 ]; then
+        echo "Deleting unmodified dream file."
+        rm "$newNum.dre"
+    fi
+    rm "/tmp/$newNum.dre"
+    umask $oldUmask
+    ;;
+
+"edit"|"e")
+    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
+    dreamfind "$@"
+    $EDITOR $args
     ;;
 
 "find"|"f")
@@ -576,15 +551,9 @@ STATS_DISP
     echo $args
     ;;
 
-"edit"|"e")
-    [ -z "$1" ] && die "'dr edit' needs arguments. See 'dr help search' for help."
-    dreamfind "$@"
-    $EDITOR $args
-    ;;
-
 "winnow"|"w"|"setdiff"|"sd")
     #TODO: Add arguments to open results in editor or change to find syntax
-    if [[ "$action" == "winnow" || "$action" == "w" ]];
+    if [[ "$action" == "winnow" || "$action" == "w" ]]
     then commparams="-12"
     else commparams="-3"
     fi
@@ -598,11 +567,64 @@ STATS_DISP
     echo $results
     ;;
 
-"last-lucid"|"ll")
-    "$EDITOR" $(grep -l 'Lucid:	' *.dre | tail -n 1) ;;
+"list-headers"|"lh")
+    if [[ "$1" == "-f" ]]; then
+        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
+                uniq -c | sort -b -k 1rn -k 2
+    else
+        grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq
+    fi
+    ;;
+
+"header-values"|"hv")
+    if [[ "$1" == "-f" || "$2" == "-f" ]]; then
+        showfreq=1
+        [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
+    else
+        showfreq=0
+    fi
+    ensure "! -z \"$1\"" "Please specify a header type, like '`basename $0` header-values Tags'."
+
+    results=$(grep "$1:	" *.dre | cut -d ':' -f 3 | cut -c 2- | \
+    #results=$(grep "$1:	" *.dre | awk '{split($0, a, ":"); print a[4],a[3],a[2],a[1]}' | cut -c 2- | \
+            sed -e 's/, /\n/g' | sort)
+    if [ $showfreq == 1 ]; then
+        echo "$results" | uniq -c | sort -b -k 1rn -k 2
+    else
+        echo "$results" | uniq
+    fi
+    ;;
+
+"cat"|"c")
+    if [ ! -z "$1" ]; then
+        # save old stdout, then redirect it to specified file, changing into
+        # the directory 'dr' was run from to do the redirect if necessary
+        [ $didpush == 1 ] && pushd "$oldpwd"
+        ensure "! -f $1" "$1 exists, not overwriting."
+        exec 4<&1
+        exec 1>"$1" || die "Could not write to specified file, see above."
+        [ $didpush == 1 ] && popd
+    fi
+    for i in *.dre; do
+        cat "$i"
+        echo -en "\n\n"
+    done
+    [ ! -z "$1" ] && exec 1<&4 # restore old stdout
+    ;;
+
+"validate"|"v")
+    validate_dreamdir
+    ;;
+
+"stats"|"s")
+    stats_display
+    ;;
 
 "regenerate-graphs"|"rg")
     scripts/RegeneratePlots.sh ;;
+
+"last-lucid"|"ll")
+    "$EDITOR" $(grep -l 'Lucid:	' *.dre | tail -n 1) ;;
 
 "become-lucid"|"bl")
     echo "Nice try." ;;
@@ -612,10 +634,8 @@ STATS_DISP
 
 "help"|"--help"|"h"|"-h"|*)
     if [[ "$1" == "search" || "$1" == "s" || "$1" == "edit" || "$1" == "find" ]]
-    then
-        usagemsg_edit
-    else
-        usagemsg
+    then usagemsg_edit
+    else usagemsg
     fi
     ;;
 esac
