@@ -20,10 +20,10 @@ An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it for editing
-get-header <header> <dreams>   :: print values of header for one or more dreams
 edit <search-expr>             :: edit dreams matching an expression
 find <search-expr>             :: show dream numbers matching an expression
 filename-display <search-expr> :: show dream filenames matching an expression
+get-header <header> <search-expr> :: print values of header for matching dreams
 setdiff <search-expr>          :: read filenames from stdin and XOR them with
                                   the results of another query
 winnow <search-expr>           :: read filenames from stdin and AND them with
@@ -631,12 +631,15 @@ NEWDREAM
     ;;
 
 "get-header"|"gh")
-    usageMsg="Usage: `basename $0` get-header <header> <files to display>"
-    ensure "! -z \"$1\""
-    ensure "! -z \"$2\""
-    header=$1
+    #TODO: Possibility of formatting options (filename or number, remove
+    #leading 0's, include header name)
+    usageMsg="Usage: `basename $0` get-header <header> <search-expr>"
+    ensure "! -z \"$1\"" "$usageMsg"
+    ensure "! -z \"$2\"" "$usageMsg"
+    getHeader=$1
     shift
-    grep "$header:	" $@ | sed -e 's/Date:	\(.*\)/\1/'
+    dreamfind "$@"
+    grep "$getHeader:	" $args | sed -e "s/$getHeader:	\(.*\)/\1/" | sed -e 's/^00*\([0-9]\+\).dre:/\1: /'
     ;;
 
 "list-headers"|"lh")
