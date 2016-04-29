@@ -23,6 +23,7 @@ new                            :: create a new dream with the next available ID
 edit <search-expr>             :: edit dreams matching an expression
 find <search-expr>             :: show dream numbers matching an expression
 filename-display <search-expr> :: show dream filenames matching an expression
+dump-headers <search-expr>     :: print all headers for matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
 setdiff <search-expr>          :: read filenames from stdin and XOR them with
                                   the results of another query
@@ -76,6 +77,11 @@ A search expression is one or more of the following (implicitly ORed together):
                     order (add -s if desired)
 
 N defaults to 1 if not provided.
+
+Globbing patterns used in search expressions should be quoted (e.g., to edit
+all dreams, use "dr edit '*'" , not "dr edit *"). They will be expanded either
+way, but 'dr' can parse the expression much faster if it expands them rather
+than your shell.
 
                              HREGEXES
 <hregex>es are EREs matched only within comma-separated items.  The ^ and $
@@ -655,6 +661,17 @@ NEWDREAM
     shift
     dreamfind "$@"
     grep "$getHeader:	" $args | sed -e "s/$getHeader:	\(.*\)/\1/" | sed -e 's/^00*\([0-9]\+\).dre:/\1: /'
+    ;;
+
+"dump-headers"|"dh")
+    usageMsg="Usage: `basename $0` dump-headers <search-expr>"
+    ensure "! -z \"$1\"" "$usageMsg"
+    dreamfind "$@"
+    for i in $args; do
+        [ ! -f "$i" ] && echo "File $i not found."
+        awk '{ if(!$0) exit; print $0; }' < "$i"
+        echo ""
+    done
     ;;
 
 "list-headers"|"lh")

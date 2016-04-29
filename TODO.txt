@@ -1,8 +1,5 @@
 For ddir publication:
 * README/docs
 * getDreamsTagged I think is broken if ‘Id’ isn’t the first header -- fix
-* ‘dr when’ command to find the date of a dream
-* and maybe a similar action for printing all headers to stdout, or the values of certain headers
-* dump-headers?
 * improve cat to allow selection of only specific dreams?
 * Move dreamdir development into a separate folder, separate from my own dream content, and split off/sanitize the git repo.
