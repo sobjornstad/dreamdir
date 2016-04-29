@@ -1,5 +1,5 @@
-" Vim syntax file
-" Dream files
+" Dreamdir dream format vim syntax highlighting file
+" Copyright 2016 Soren Bjornstad; MIT license.
 
 if exists("b:current_syntax")
      finish
@@ -12,7 +12,7 @@ syntax match Property "^.\{-\}:\t"
 " lucid sections
 syntax region Lucid start="{" end="}" contains=Emphasis,WL,Raw
 
-" RL brackets
+" WL brackets
 syntax region WL start="\[" end="\]" contained
 syntax region WL start="\[" end="\]"
 
