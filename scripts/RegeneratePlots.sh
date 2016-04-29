@@ -9,9 +9,7 @@
 [ -z "$DREAMDIR" ] && DREAMDIR=$PWD
 cd $DREAMDIR
 reason="Please run this script from the dreamdir root directory."
-ensure '-d scripts' "$reason"
-ensure '-d graphs'  "$reason"
-ensure '-f dr'      "$reason"
+ensure '-f .dreamdir' "$reason"
 pushd scripts
 
 echo -n "Tabulating dream dates..."

@@ -561,8 +561,7 @@ STATS_DISP
 # change directory into it until the end of the script.
 didpush=0
 oldpwd="$PWD" # if we need to know where the user is running the script from
-if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && \
-      ! -d scripts && ! -d graphs && ! -f dr ]]; then
+if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
     didpush=1
     pushd "$DREAMDIR"
     if [[ $? != 0 ]]; then
@@ -576,9 +575,7 @@ fi
 # Confirm that we've ended up in a dreamdir.
 error="Please run this script from a dreamdir, or set the environment\n"\
 "variable \$DREAMDIR to the path to your dreamdir."
-ensure '-d scripts' "$error"
-ensure '-d graphs'  "$error"
-ensure '-f dr'      "$error"
+ensure '-f .dreamdir' "$error"
 
 # Figure out what action we're going to do and jump to appropriate code.
 [ -z "$1" ] && usagemsg
