@@ -111,8 +111,10 @@ is replaced.
 
                              OPTIONS
 The following options may be used with any search expression:
-  -r: Reverse the order of returned results.
-  -s: Randomize (shuffle) the order of returned results.
+  -r     :: reverse the order of returned results
+  -s     :: randomize (shuffle) the order of returned results
+  -l <N> :: show only the first N results (if N is negative, remove N results
+            from the end of the list)
 
                              EXAMPLES
 dr edit 50                    :: edit dream number 50
@@ -240,12 +242,15 @@ dreamfind() {
     # Parse optional arguments to edit.
     doReverse=0
     doShuf=0
-    while getopts rs opt; do
+    limit=0
+    while getopts rsl: opt; do
         case $opt in
         r)
             doReverse=1 ;;
         s)
             doShuf=1 ;;
+        l)
+            limit=$OPTARG
         esac
     done
     shift $((OPTIND-1))
@@ -314,6 +319,7 @@ dreamfind() {
     args=$(echo $args | cat -) # looks like a no-op, but it expands globs
     [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
     [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
+    [ $limit -ne 0 ]     && args=$(echo "$newargs" | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."
