@@ -20,10 +20,12 @@ An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it for editing
-edit <search-expr>             :: edit dreams matching an expression
-find <search-expr>             :: show dream numbers matching an expression
-filename-display <search-expr> :: show dream filenames matching an expression
-dump-headers <search-expr>     :: print all headers for matching dreams
+cat <search-expr>              :: print all content of dreams matching
+                                  expression on stdout
+dump-headers <search-expr>     :: print headers of matching dreams
+edit <search-expr>             :: pass matching dreams as args to \$EDITOR
+find <search-expr>             :: show numbers of matching dreams
+filename-display <search-expr> :: print filenames of matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
 setdiff <search-expr>          :: read filenames from stdin and XOR them with
                                   the results of another query
@@ -37,8 +39,6 @@ header-replace                 :: regex search-and-replace on headers; type
                                   '`basename $0` help header-replace' for info
 last-lucid                     :: edit the dream with the highest number that
                                   has a Lucid header
-cat [<file>]                   :: concatenate all dream files to form a single
-                                  output stream, written to stdout or <file>
 regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
 stats                          :: display dream statistics
 validate                       :: format sanity check: ensure all dreams have
@@ -81,7 +81,8 @@ N defaults to 1 if not provided.
 Globbing patterns used in search expressions should be quoted (e.g., to edit
 all dreams, use "dr edit '*'" , not "dr edit *"). They will be expanded either
 way, but 'dr' can parse the expression much faster if it expands them rather
-than your shell.
+than your shell. Note also that including '.dre' is optional -- that is,
+'0100[34]' expands to '01003.dre 01004.dre'.
 
                              HREGEXES
 <hregex>es are EREs matched only within comma-separated items.  The ^ and $
@@ -299,10 +300,6 @@ dreamfind() {
             else
                 newargs="$1.dre"
             fi
-            # If a term ends in "*", then we get '.dre' in perfectly correct
-            # globs. Actually the user would do well to quote the expression,
-            # as expanding it later makes the search run noticeably faster.
-            #&& die "Globbing patterns should not include '.dre'. (See 'dr help search' for help.)"
         esac
         fi  # regex matches
 
@@ -322,7 +319,7 @@ dreamfind() {
     [ -z "$args" ] && die "No results."
     for i in $args
     do
-        ensure "-f $i" "Matched nonexistent file '$i'; please check your search terms and try again."
+        ensure "-f \"$i\"" "Matched nonexistent file '$i'; please check your search terms and try again."
     done
 }
 
@@ -674,6 +671,16 @@ NEWDREAM
     done
     ;;
 
+"cat"|"c")
+    usageMsg="Usage: `$basename $0` cat <search-expr>"
+    ensure "! -z \"$1\"" "$usageMsg"
+    dreamfind "$@"
+    for i in $args; do
+        cat "$i"
+        echo -en "\n\n"
+    done
+    ;;
+
 "list-headers"|"lh")
     if [[ "$1" == "-f" ]]; then
         grep -h '^.*:	' *.dre | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
@@ -774,24 +781,6 @@ NEWDREAM
         echo "Changes will affect $numAffected files."
     fi
 
-    ;;
-
-
-"cat"|"c")
-    if [ ! -z "$1" ]; then
-        # save old stdout, then redirect it to specified file, changing into
-        # the directory 'dr' was run from to do the redirect if necessary
-        [ $didpush == 1 ] && pushd "$oldpwd"
-        ensure "! -f $1" "$1 exists, not overwriting."
-        exec 4<&1
-        exec 1>"$1" || die "Could not write to specified file, see above."
-        [ $didpush == 1 ] && popd
-    fi
-    for i in *.dre; do
-        cat "$i"
-        echo -en "\n\n"
-    done
-    [ ! -z "$1" ] && exec 1<&4 # restore old stdout
     ;;
 
 "validate"|"v")
