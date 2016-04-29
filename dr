@@ -78,19 +78,29 @@ A search expression is one or more of the following (implicitly ORed together):
 N defaults to 1 if not provided.
 
                              HREGEXES
-<hregex>es are EREs matched only within comma-separated items. For instance,
-with the header "Tags: foo, bar baz":
-  REGEX     :: MATCHES?
-  foo       :: yes
-  bar       :: yes
-  baz       :: yes
-  az        :: yes
-  .*baz     :: yes
-  ba.*az    :: yes
-  o, ba     :: no
-  foo.*baz  :: no
-You may want to consider padding your regex with '\\b' on either side to
-require full-word matches; otherwise 'cat' matches 'catalog' and 'duplicate.'
+<hregex>es are EREs matched only within comma-separated items.  The ^ and $
+anchors can be used to match the start and end of a single item. For instance,
+with the header "Tags: foo, bar baz, foobar":
+  REGEX     :: MATCHES
+  foo       :: foo & foobar
+  bar       :: bar & foobar
+  baz       :: bar baz
+  az        :: bar baz
+  .*baz     :: bar baz
+  ^ba.*az   :: bar baz
+  ^foobar$  :: foobar
+  ^baz$     :: -
+  o, ba     :: -
+  foo.*baz  :: -
+Padding your expression with ^ and $ is usually a good idea unless you're
+specifically trying to match substrings; otherwise 'cat' matches 'catalog'
+and 'duplicate'.
+
+With 'dr find tagged', a dream matches if any comma-separated item matches
+the hregex.
+
+With 'dr header-replace', only the specific comma-separated item that matches
+is replaced.
 
                              OPTIONS
 The following options may be used with any search expression:
@@ -125,12 +135,13 @@ usagemsg_header_replace () {
 `basename $0` header-replace [-f] <header> <find> <replace> [<filenames...>]
 
 In <filenames> or the entire dreamdir, replace instances of <find> in header
-<header> with <replace>. <Find>, <header>, and <replace> are EREs.
+<header> with <replace>.  <header> and <replace> are EREs; <find> is
+specifically an hregex (see 'help dr search' for more information).
 
-<find> will not match across multiple comma-separated values, but it may match
-and change several tags separately. For example, for the header
-'Tags: bar, baz', we could find 'ba' and replace with 'fo' and obtain
-'Tags: for, foz', but a search for 'r, b' will not match anything.
+<find> will not match across commas, but it may match and change several tags
+separately.  For example, for the header 'Tags: bar, baz', we could find 'ba'
+and replace with 'fo' and obtain 'Tags: for, foz', but a search for 'r, b' will
+not match anything.
 
 Each comma-separated value is considered a separate line, so we can search for
 '^foobar$' to match only the entire tag 'foobar' and not, say, 'foobarbaz'.
@@ -139,7 +150,7 @@ Each comma-separated value is considered a separate line, so we can search for
 
                              PREVIEWING
 Without the -f option, dr produces a preview of the changes your search-and-
-replace will make. Typical output looks like this:
+replace will make.  Typical output looks like this:
 
     $ dr header-replace Tags "foo" "quux"
     ** Running search-and-replace on all dreams. **
@@ -151,20 +162,20 @@ replace will make. Typical output looks like this:
 
     Changes will affect 1 file.
 
-One section will be produced for each dream affected. The first lines
-underneath are a diff between the two sets of values. The last line shows the
+One section will be produced for each dream affected.  The first lines
+underneath are a diff between the two sets of values.  The last line shows the
 new header line that will be substituted in if you accept the changes.
 
                              RUNNING
 After checking over the preview, rerun the command with the -f option to
-actually make the changes. Naturally, this can be quite dangerous with the
+actually make the changes.  Naturally, this can be quite dangerous with the
 wrong regexes (e.g., a replacement of '.' with 'x' will completely trash all
-your headers), so it's wise to make a backup first. You'll also be required to
+your headers), so it's wise to make a backup first.  You'll also be required to
 confirm interactively that you've double-checked the preview.
 
 (NOTE: If the replace command gets interrupted in the middle, it is possible,
 though very unlikely, that one of your dreams will have been deleted; you can
-check this by seeing if 'dr validate' fails with a missing ID number. If this
+check this by seeing if 'dr validate' fails with a missing ID number.  If this
 does occur you will find the content in the file 'repl.tmp' in your dreamdir.)
 USAGEMSG
 }
@@ -266,9 +277,13 @@ dreamfind() {
             usage="Usage: dr edit tagged <header regex> <value regex>"
             ensure "! -z \"$2\"" "$usage"
             ensure "! -z \"$3\"" "$usage"
+            # The idea here is to replace the delimiters with '@@@@@' (which we
+            # can fairly safely assume will not show up in a tag), then change
+            # the user's regex to match '@@@@@' as BOL/EOL and not cross it
+            # with '.'.
             header="$2"
-            pattern=$(echo "$3" | sed -e 's/\./[^@]/')
-            newargs=$(grep -m 1 "$header:	" *.dre | sed -e "s/$header:        //" | sed -e 's/, /@@@@@/g' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            pattern=$(echo "$3" | sed -e 's/\./[^@]/' | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/')
+            newargs=$(grep -m 1 "$header:	" *.dre | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
 
@@ -567,7 +582,7 @@ case "$action" in
     printf -v newNum '%05d' "$newNum"
 
     # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
-    ed <<NEWDREAM > /dev/null 2>&1
+    ed <<NEWDREAM >/dev/null 2>&1
 i
 Id:	$newNum
 Date:	$today
@@ -678,7 +693,6 @@ NEWDREAM
     ensure "! -z \"$3\"" "$usageMsg"
     [[ "$2" =~ "|" || "$3" =~ "|" ]] && die "Pipes (|) are not valid in search/replace regexes!\n$usageMsg"
 
-    #TODO: Might be wise to do some validation of user's input first; both here and in similar places, what if there's a / or | in the input regex?
     #TODO: Take an automatic backup before beginning?
     if [ "$1" == "-f" ]; then
         echo "WARNING: You are about to run a regex search-and-replace on all"
