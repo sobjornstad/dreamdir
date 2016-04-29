@@ -57,9 +57,12 @@ usagemsg_edit() {
 `basename $0` <edit|find|filename-display|setdiff|winnow> [<options>] <expr>
 
 Select dreams matching search expression <expr> and:
+  c[at] - print their headers and content on stdout
+  d[ump-]h[eaders] - print only their headers on stdout
   e[dit] - pass their filenames as arguments to \$EDITOR
-  f[ind] - print a list of dream numbers
-  f[ilename-]d[isplay] - print a list of dream filenames
+  f[ind] - print their numbers
+  f[ilename-]d[isplay] - print their filenames
+  g[et-]h[eader] - print their values for the specified header
   s[etdiff] - read filenames from stdin, print dreams present in stdin but not
       query, and vice versa
   w[innow] - read filenames from stdin, remove non-matches
@@ -120,14 +123,16 @@ The following options may be used with any search expression:
 dr edit 50                    :: edit dream number 50
 dr filename-display 006[12]?  :: show the filenames of dreams #610-629
 dr edit last 4 890            :: edit the last four dreams and #890
-dr find 20 0[12]01*           :: list dream numbers #20, #1010-1019, #2010-2019
+dr dump-headers 20 0[12]01*   :: show headers for dreams #20, #1010-1019,
+                                 #2010-2019
+dr get-header Tags '*'        :: get a listing of the tags of all your dreams
 dr edit -s last 6             :: edit the last six dreams in a random order
-dr find grep 'foo|bar'        :: list dream numbers with a line containing the
-                                 substring "foo" or "bar"
+dr cat -l 6 grep 'foo|bar'    :: print the first six dreams with a line
+                                 containing the substring "foo" or "bar"
 dr edit -r grep 'XX' back 20  :: edit the dream 20 from the end, then dreams
                                  containing "XX" in reverse numerical order
-dr filename-display random 5  :: display the filenames of five random dreams
-dr edit tagged People Maud    :: edit dreams in which Maud appeared
+dr filename-display random 5  :: list the filenames of five random dreams
+dr find tagged People Maud    :: edit dreams in which Maud appeared
 dr edit tagged Tags '\\bcat\\b' :: display dreams tagged with 'cat', but not
                                  'caterwaul' or 'dedicate'
 dr fd 006[12]? |              :: display filenames for dreams #610-629 that
