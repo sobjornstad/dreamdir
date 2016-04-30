@@ -54,57 +54,60 @@ USAGEMSG
 usagemsg_edit() {
     cat <<USAGEMSG
                              DR - SEARCHING
-`basename $0` <edit|find|filename-display|setdiff|winnow> [<options>] <expr>
+`basename $0` <action> [<options>] <expr>
 
-Select dreams matching search expression <expr> and:
-  c[at] - print their headers and content on stdout
-  d[ump-]h[eaders] - print only their headers on stdout
-  e[dit] - pass their filenames as arguments to \$EDITOR
-  f[ind] - print their numbers
-  f[ilename-]d[isplay] - print their filenames
-  g[et-]h[eader] - print their values for the specified header
-  s[etdiff] - read filenames from stdin, print dreams present in stdin but not
-      query, and vice versa
-  w[innow] - read filenames from stdin, remove non-matches
+Select dreams matching search expression <expr> and take <action>:
+  c[at]            :: print their headers and content on stdout
+  d[ump-]h[eaders] :: print only their headers on stdout
+  e[dit]           :: pass their filenames as arguments to \$EDITOR
+  f[ind]           :: print their numbers
+  f[ilename-]d[isplay] :: print their filenames
+  g[et-]h[eader]   :: print their values for the specified header
+  w[innow]         :: read filenames from stdin, print filenames present in
+                      both query results and stdin (AND)
+  x[winnow]        :: read filenames from stdin, print filenames present in
+                      either query results or stdin but not both (XOR)
 
                              SEARCH EXPRESSIONS
 A search expression is one or more of the following (implicitly ORed together):
-* a dream number (leading zeroes allowed but not required)
-* a shell globbing pattern for some dream numbers (leading zeroes required)
-* b[ack] [<N>]   :: select the dream N positions from the end, inclusive
-* l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
-* g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the file
-                    (whether in headers, notes, or text)
-* t[agged] <header> <hregex> :: select dreams with <header> matching <hregex>
-* r[andom] [<N>] :: select N dreams randomly from your dreamdir, in numerical
-                    order (add -s if desired)
+  * a dream number (leading zeroes allowed but not required)
+  * a shell globbing pattern for some dream numbers (leading zeroes required)
+  * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
+  * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
+  * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
+                      file (whether in headers, notes, or text)
+  * t[agged] <header> <hregex> :: select dreams with <header> matching <hregex>
+  * r[andom] [<N>] :: select N dreams randomly from your dreamdir, in numerical
+                      order (add -s if desired)
 
 N defaults to 1 if not provided.
 
 Globbing patterns used in search expressions should be quoted (e.g., to edit
-all dreams, use "dr edit '*'" , not "dr edit *"). They will be expanded either
-way, but 'dr' can parse the expression much faster if it expands them rather
-than your shell. Note also that including '.dre' is optional -- that is,
-'0100[34]' expands to '01003.dre 01004.dre'.
+all dreams, use "dr edit '*'" , not "dr edit *").  They will be expanded either
+way, but 'dr' parses large numbers of arguments much more slowly, so the search
+will finish faster if you quote the pattern.  Note also that, when the pattern
+is quoted, including '.dre' is optional -- that is, '0100[34]' expands to
+'01003.dre 01004.dre'.
 
                              HREGEXES
-<hregex>es are EREs matched only within comma-separated items.  The ^ and $
-anchors can be used to match the start and end of a single item. For instance,
-with the header "Tags: foo, bar baz, foobar":
+<hregex>es are Extended Regular Expressions (EREs) that match only within
+comma-separated items.  The ^ and $ anchors can be used to match the start and
+end of a single item.  For example, with header "Tags: foo, bar baz, foobar":
   REGEX     :: MATCHES
-  foo       :: foo & foobar
-  bar       :: bar & foobar
-  baz       :: bar baz
-  az        :: bar baz
-  .*baz     :: bar baz
-  ^ba.*az   :: bar baz
-  ^foobar$  :: foobar
+  foo       :: 'foo' & 'foobar'
+  bar       :: 'bar' & 'foobar'
+  baz       :: 'bar baz'
+  az        :: 'bar baz'
+  .*baz     :: 'bar baz'
+  ^ba.*az   :: 'bar baz'
+  ^foobar$  :: 'foobar'
   ^baz$     :: -
   o, ba     :: -
   foo.*baz  :: -
 Padding your expression with ^ and $ is usually a good idea unless you're
-specifically trying to match substrings; otherwise 'cat' matches 'catalog'
-and 'duplicate'.
+specifically trying to match substrings; otherwise 'cat' matches 'catalog',
+and 'duplicate'. If you want to avoid 'catalog' but still get 'cat food', you
+can pad with '\\b' (word boundary).
 
 With 'dr find tagged', a dream matches if any comma-separated item matches
 the hregex.
@@ -118,6 +121,7 @@ The following options may be used with any search expression:
   -s     :: randomize (shuffle) the order of returned results
   -l <N> :: show only the first N results (if N is negative, remove N results
             from the end of the list)
+  -v     :: invert match (show only dreams that do *not* match expression)
 
                              EXAMPLES
 dr edit 50                    :: edit dream number 50
@@ -133,12 +137,12 @@ dr edit -r grep 'XX' back 20  :: edit the dream 20 from the end, then dreams
                                  containing "XX" in reverse numerical order
 dr filename-display random 5  :: list the filenames of five random dreams
 dr find tagged People Maud    :: edit dreams in which Maud appeared
-dr edit tagged Tags '\\bcat\\b' :: display dreams tagged with 'cat', but not
+dr edit tagged Tags '^cat$'   :: display dreams tagged with 'cat', but not
                                  'caterwaul' or 'dedicate'
 dr fd 006[12]? |              :: display filenames for dreams #610-629 that
-  dr winnow tagged Tags 'dog'    are also tagged with 'dog'              
-dr fd t Tags '\bcat\b' |      :: show dreams that are not tagged 'cat' but
-  dr setdiff grep '\bcat\b'      do use the word 'cat' somewhere else
+  dr winnow tagged Tags 'dog'    also have a tag containing 'dog'
+dr fd t Tags '^cat$' |        :: show dreams that are not tagged exactly 'cat'
+  dr xwinnow grep '\\bcat\\b'      but do use the word 'cat' somewhere else
 USAGEMSG
     exit 0
 }
@@ -248,14 +252,17 @@ dreamfind() {
     doReverse=0
     doShuf=0
     limit=0
-    while getopts rsl: opt; do
+    invert=0
+    while getopts rsl:v opt; do
         case $opt in
         r)
             doReverse=1 ;;
         s)
             doShuf=1 ;;
         l)
-            limit=$OPTARG
+            limit="$OPTARG" ;;
+        v)
+            invert=1 ;;
         esac
     done
     shift $((OPTIND-1))
@@ -324,7 +331,10 @@ dreamfind() {
     args=$(echo $args | cat -) # looks like a no-op, but it expands globs
     [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
     [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
-    [ $limit -ne 0 ]     && args=$(echo "$newargs" | head -n $limit)
+    [ $limit -ne 0 ]     && args=$(echo $args | head -n $limit)
+    if [ $invert -eq 1 ]; then
+        args=$(comm -3 <(ls *.dre | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
+    fi
 
     # sanity check
     [ -z "$args" ] && die "No results."
@@ -640,7 +650,7 @@ NEWDREAM
     echo $args
     ;;
 
-"winnow"|"w"|"setdiff"|"sd")
+"winnow"|"w"|"xwinnow"|"x")
     #TODO: Add arguments to open results in editor or change to find syntax
     if [[ "$action" == "winnow" || "$action" == "w" ]]
     then commparams="-12"

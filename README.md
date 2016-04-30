@@ -8,7 +8,7 @@ Introduction
 Dreamdir follows the *Unix philosophy*:
 
 * All dreams are stored in plain text formatted in a consistent way. The format is human-readable and is normally read and written directly.
-* Dreamdir is first and foremost a format, not an application. Simple code designed to do one thing well is provided to make working with this format easier.
+* Dreamdir is first and foremost a format, not an application. Simple code designed to do one thing well is provided to make working with the format easier.
 * In addition to the provided code, standard Unix text-processing tools and simple scripts can easily manipulate dreams stored in a Dreamdir.
 
 Features:
@@ -16,7 +16,7 @@ Features:
 * Each dream is stored in its own plain text file.
 * Each dream file begins with a list of attributes, such as the date, the names of people who appeared in the dream, and tags.
 * The remainder of the dream file is simply the text of your entry, and you can do anything you like with it.
-* The provided shell script `dr` makes it easy to create new dreams, check the validity of your dreamdir format, and do common searches.
+* The provided shell script `dr` makes it easy to create new dreams, view and edit existing dreams, and do complex searches.
 * Example scripts are provided for tasks like graphing day-to-day recall and generating indexes. A small Python library is also available for user scripts.
 * Free and open source: the Dreamdir format itself and this documentation are public domain, and all code is provided under the MIT license (see the LICENSE file for details).
 
@@ -56,13 +56,13 @@ The easiest way to learn the format is to look at an example dream file:
 
     [remainder of dream clipped]
 
-At the top you see the *attributes*, also called *headers*, especially when referring to their position in the file. Each attribute is separated from its *value* by a colon followed by a hard tab. (The requirement of a tab makes commands like `grep` easier to use, since a colon will not be followed by a tab in running text.) For attributes that can take multiple values, such as People, Places, and Tags, individual values are separated by a comma and a space.
+At the top you see the *headers*. Each header is separated from its *values* by a colon followed by a hard tab. (The requirement of a tab makes commands like `grep` easier to use, since a colon will not be followed by a tab in running text.) For attributes that can take multiple values, such as People, Places, and Tags, individual values are separated by a comma and a space.
 
-Two attributes are **required** to form a valid dream file: the *Id* number and the *Date*. All other attributes are optional. There are no rules about what constitutes a valid attribute name, and it is fine for some dreams to not have a particular optional attribute at all. The headers can come in any order. Scripts may stop looking for header lines when they reach the first blank line.
+Two attributes are **required** to form a valid dream file: the *Id* number and the *Date*. All other attributes are optional. There are no rules about what constitutes a valid attribute name, and it is fine for some dreams to not have a particular optional attribute at all. The headers can come in any order. A blank line follows the headers.
 
 The two required attributes are somewhat fussier, as follows:
 
-* **Id**: Dreamdir uses fixed-width five-digit ID numbers, beginning at `00001` and increasing for each dream up to `99999`. (If you manage to record 100,000 dreams, I congratulate you and also suspect you have enough time on your hands to change a few scripts to use six-digit numbers!)
+* **Id**: Dreamdir uses fixed-width five-digit ID numbers, beginning at `00001` and increasing for each dream up to `99999`. (If you manage to record 100,000 dreams, updates to the program and a beer are on me!)
 * **Date**: Dreamdir scripts expect ISO 8601-formatted dates (YYYY-MM-DD).
 
 Beneath the attributes, following a blank line, comes the text of the dream. As long as you don’t begin any later line with a header (i.e., a line containing a colon immediately followed by a hard tab), you can do anything you like here, though you may wish to look at the “Formatting guidelines” section, below.
@@ -88,6 +88,7 @@ As mentioned earlier, you can use any attributes you like as long as you include
 * **People**: Comma-separated list of waking-life people who appeared in the dream.
 * **Places**: Ditto for places with proper names and general geographic regions.
 * **Tags**: List of motifs, categories, and other elements that are useful to track across multiple dreams but don’t fit into other attributes.
+* **Title**: A title...
 * **Time**: If I had a clock handy and remembered to write it down, the time at which I woke up from the dream.
 * **Lucid**: Included and with a value of 1 if the dream was lucid at any point.
 
@@ -99,69 +100,37 @@ All dreams are kept in the main directory. A dream’s filename is its ID number
 
 There are several other files and directories in a standard Dreamdir. A file listing of the Dreamdir might look something like this:
 
-    -rw------- 1 soren soren   623 Dec 14  2014 00001.dre
-    -rw------- 1 soren soren   211 May 18  2015 00002.dre
+    -rw-------  1 soren soren   623 Dec 14  2014 00001.dre
+    -rw-rw-r--  1 soren soren   210 Feb 14 19:00 00002.dre
     [...]
-    -rw------- 1 soren soren  4682 Jan  7 22:42 01021.dre
-    -rw------- 1 soren soren  1823 Jan  7 19:41 01022.dre
-    -rwxr-xr-x 1 soren soren  4949 Jan  8 07:20 dr
-    drwxr-xr-x 2 soren soren  4096 Jan  2 09:54 graphs
-    drwxr-xr-x 4 soren soren  4096 Jan  8 07:25 scripts
-    -rw-rw-r-- 1 soren soren   163 Jan  7 22:39 TODO.txt
+    -rw-------  1 soren soren  3075 Apr 28 21:25 01227.dre
+    -rw-------  1 soren soren  1600 Apr 27 13:21 01228.dre
+    -rw-rw-r--  1 soren soren     0 Apr 29 15:56 .dreamdir
+    -rwxrwxr-x  1 soren soren 30337 Apr 29 13:32 dr
+    drwxr-xr-x  2 soren soren  4096 Jan 17 19:37 graphs
+    drwxr-xr-x 4 soren soren   4096 Apr 29 16:02 scripts
+    -rw-rw-r-- 1 soren soren    163 Jan  7 22:39 TODO.txt
 
 Of note:
 
+* There is a `.dreamdir` file, which marks this directory as a Dreamdir. The content is currently unimportant, but scripts may check for this file to ensure they’re working in a dreamdir.
 * The `dr` script is located in the Dreamdir.
 * Other scripts, including the `ddirparse` Python library `dr` uses for several tasks, are in the `scripts/` subdirectory.
 * Graphs generated by scripts go in the `graphs` subdirectory.
-
-Scripts may assume that the `dr` script and these two directories are present, and may use their presence to confirm that they are working in a Dreamdir.
 
 
 The `dr` script
 ===============
 
-The `dr` script provides convenient tools to manage your dreamdir. The script works on the current directory (i.e., $PWD), so is often run like this:
+The `dr` script provides convenient tools to manage your dreamdir. The script works on the current directory (i.e., $PWD), so may be run like this:
 
     $ cd ~/dreams
     $ ./dr new
 
 Alternatively, `dr` recognizes the environment variable `$DREAMDIR` as the path to your dreamdir. If this variable is defined and you are not currently in a dreamdir when you run `dr`, that dreamdir will be used instead.
 
-Usage information can be obtained with `./dr help`. Many of the actions are self-explanatory; some example usages are shown below.
+Help on the script can be obtained at the command line. There are three pages of help:
 
-    $ ./dr find-tagged People Maud
-    8 matches: [80, 81, 106, 388, 524, 823, 937, 952]
-
-    $ ./dr open-tagged People Maud
-    (calls $EDITOR 00080.dre 00081.dre 00106.dre 00388.dre 00524.dre 00823.dre 00937.dre 00952.dre)
-
-    $ ./dr header-list Places
-    Arby's
-    ARC
-    Arts and Sciences Building
-    ASB
-    Australia
-    [...]
-    Whiting Energy Center
-    Wisconsin
-    Wrigley Field
-
-    $ ./dr show-headers
-    Date
-    Id
-    Lucid
-    People
-    Places
-    Tags
-    Time
-
-    $ ./dr new
-    (Run on January 8, 2016 with highest dream number 01022.
-     New file opens in $EDITOR with content:)
-    Id:	01023
-    Date:	2016-01-08
-    Time:	
-    Tags:	
-
-Note that `find-tagged` and `open-tagged` can optionally be used without a `value` parameter; in this case the search will look for all dreams that specify that header, regardless of its value.
+* `dr help`: Shows a brief listing of all the actions available.
+* `dr help search`: Shows information on search expressions.
+* `dr help header-replace`: Shows information on header search-and-replace (this can be used to merge two similar tags together, for instance).
