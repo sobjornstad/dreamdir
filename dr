@@ -3,7 +3,7 @@
 # Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 # application version
-MYVERSION="0.3"
+MYVERSION="1.0"
 
 ##### DOCUMENTATION / HELP MESSAGES #####
 # usagemsg()
@@ -27,9 +27,9 @@ edit <search-expr>             :: pass matching dreams as args to \$EDITOR
 find <search-expr>             :: show numbers of matching dreams
 filename-display <search-expr> :: print filenames of matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
-setdiff <search-expr>          :: read filenames from stdin and XOR them with
-                                  the results of another query
 winnow <search-expr>           :: read filenames from stdin and AND them with
+                                  the results of another query
+xwinnow <search-expr>          :: read filenames from stdin and XOR them with
                                   the results of another query
 list-headers [-f]              :: list headers used in at least one dream (with
                                   frequency if -f specified)
@@ -709,7 +709,7 @@ NEWDREAM
     ;;
 
 "header-values"|"hv")
-    ensure "! -z \"$1" "Usage: `basename $0` header-values [-f] <header>"
+    ensure "! -z \"$1\"" "Usage: `basename $0` header-values [-f] <header>"
     if [[ "$1" == "-f" || "$2" == "-f" ]]; then
         showfreq=1
         [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
@@ -729,7 +729,7 @@ NEWDREAM
     ;;
 
 "header-replace"|"hr")
-    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> [<filenames>]"
+    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> [<filenames>]\nType 'dr help header-replace' for details."
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     ensure "! -z \"$3\"" "$usageMsg"
