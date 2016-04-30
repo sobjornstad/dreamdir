@@ -3,9 +3,9 @@
 Introduction
 ============
 
-*Dreamdir* is a format for storing a dream journal inspired by the popular [Maildir](https://en.wikipedia.org/wiki/Maildir) way of storing mailboxes and the RFC 2822 email format itself.
+*Dreamdir* is a format for storing a dream journal inspired by the popular [Maildir](https://en.wikipedia.org/wiki/Maildir) way of storing mailboxes and the [RFC 2822](https://tools.ietf.org/html/rfc2822) email format itself.
 
-Dreamdir follows the *Unix philosophy*:
+Dreamdir follows the [Unix philosophy](https://en.wikipedia.org/wiki/Unix_philosophy):
 
 * All dreams are stored in plain text formatted in a consistent way. The format is human-readable and is normally read and written directly.
 * Dreamdir is first and foremost a format, not an application. Simple code designed to do one thing well is provided to make working with the format easier.
@@ -65,7 +65,7 @@ Two headers are **required** to form a valid dream file: the *Id* number and the
 The two required headers are somewhat fussier, as follows:
 
 * **Id**: Dreamdir uses fixed-width five-digit ID numbers, beginning at `00001` and increasing for each dream up to `99999`. (If you manage to record 100,000 dreams, updates to the program and a beer are on me!)
-* **Date**: Dreamdir scripts expect ISO 8601-formatted dates (YYYY-MM-DD).
+* **Date**: Dreamdir scripts expect [ISO 8601](https://xkcd.com/1179/)-formatted dates (YYYY-MM-DD).
 
 Beneath the headers, following a blank line, comes the text of the dream. As long as you don’t begin any later line with a header (i.e., a line containing a colon immediately followed by a hard tab), you can do anything you like here, though you may wish to look at the “Formatting guidelines” section, below.
 
@@ -125,23 +125,27 @@ Installation / creating a Dreamdir
 
 The minimum you need to do to start your dreamdir is to clone down this repository, delete or move any files you don’t want (`LICENSE`, `README`, etc.), then `touch .dreamdir` to mark the folder as a dreamdir.
 
-You may also wish to set the environment variable `$DREAMDIR` to the location of your dreamdir and symlink the `dr` script somewhere on your `$PATH`; this way you can run `dr` from anywhere in your filesystem.
+You may also wish to set the environment variable `$DREAMDIR` to the path to your dreamdir and symlink the `dr` script somewhere on your `$PATH`; this way you can run `dr` from anywhere in your filesystem.
 
 If you want to use any graphs, you should `mkdir graphs`.
+
+I keep my dreamdir under `git` control to keep track of any revisions I make to headers and dreams and as an extra backup against scripting and [PEBKAC](https://en.wikipedia.org/wiki/User_error#Acronyms_and_other_names) errors. You may wish to do likewise.
 
 `dr` should run on any POSIX-compliant system with a modern version of `bash` and `python2`. The graph/plot functions currently require an installation of R with ggplot2; in the future I may look into using a Python plot library instead to get rid of this annoying dependency.
 
 Dreamdir scripts
 ================
 
-A number of scripts, largely written in Python, are provided in the `scripts/` directory of this repository; you may wish to use use some of these or use them as models for building your own scripts. Of particular note is `ddirparse.py`, which is a general library for use in developing Dreamdir scripts.
+A number of scripts, largely written in Python, are provided in the `scripts/` directory of this repository; you may wish to use some of these as models for building your own scripts. Of particular note is `ddirparse.py`, which is a general library for use in developing Dreamdir scripts.
+
+I don’t make any guarantees about the general applicability of these scripts. In particular, you should read through the code of any script you hope to use before using it; you may find there are still file paths or other constants only applicable to my system lurking in there somewhere.
 
 Vim files
 =========
 
 For those who use vim, my syntax highlighting file and ftplugin file are located in the `vim/` directory; you can install these to your `~/.vim` directory directly or use your favorite plugin manager.
 
-You may want to get rid of the `setlocal cpoptions+=J` option if you don’t want to double-space between sentences (see the “Formatting guidelines” section above).
+You may want to remove the `setlocal cpoptions+=J` (`:help cpo-J`) line from `vim/ftplugin/dream.vim` if you don’t want to double-space between sentences (see the “Formatting guidelines” section above).
 
 The `dr` script
 ===============
@@ -159,12 +163,12 @@ Detailed help on all the functions and options you have can be obtained at the c
 * `dr help search`: Shows information on search expressions.
 * `dr help header-replace`: Shows information on header search-and-replace (this can be used to merge two similar tags together, for instance).
 
-Note that all commands can be abbreviated by their initials; `find` is `f`, for example, and `dump-headers` is `dh`. Keywords in search expressions can be abbreviated similarly, so to find dreams tagged with `Maud` in the `People` field, we can use `dr f t People Maud` as well as `dr find tagged People Maud`. The long names are normally used throughout the documentation for clarity, and they are easier to remember when you’re getting started and more readable in scripts, but once you know what you’re doing you can save quite a few keystrokes this way.
+Note that all commands can be abbreviated by their initials; `find` is `f`, for example, and `dump-headers` is `dh`. Keywords in search expressions can be abbreviated similarly, so to find dreams tagged with `Maud` in the `People` field, we can use `dr f t People Maud` as well as `dr find tagged People Maud`. The long names are normally used throughout the documentation for clarity, and they are easier to remember when you’re getting started, but once you know what you’re doing you can save quite a few keystrokes this way.
 
 Searching walkthrough
 ---------------------
 
-A complete reference on search commands is available from `dr help search`, as well as a few concise examples. This section will instead give some examples of actually doing something with the program to give you an idea of what is possible.
+A complete reference on search commands, along with a few concise examples, is available by running `dr help search`. This section will instead give some examples of actually doing something with the program to give you an idea of what is possible.
 
 Though unassuming, the search function is quite powerful. The most common use is probably to look at or edit a given dream number:
 
@@ -193,6 +197,8 @@ I happen to know offhand that there’s also a dream that involves heroin (not i
     $ dr find tagged Tags 'marijuana' tagged Tags 'heroin'
     5 matches: [429, 584, 1181, 1198, 426]
 
+Since the tag search uses extended regular expressions and both of our criteria are searching in the Tags field, we could also combine these:
+
     $ dr find tagged Tags 'marijuana|heroin'
     5 matches: [426, 429, 584, 1181, 1198]
 
@@ -205,7 +211,7 @@ When did I have those dreams?
     1198: 2016-04-04
     426: 2012-04-27
 
-If we wanted to look closer here, of course, we could use `dump-headers` to get an idea about these dreams, and `cat` or `edit` if we wanted to read the actual reports.
+If we wanted to look closer here, of course, we could use `dump-headers` to get an idea about what happened in these dreams, and `cat` or `edit` if we wanted to read the actual reports.
 
 So that we can get a better look at the more heavy-duty search features, let’s look at a different motif that shows up more frequently in my own dreams: trains.
 
