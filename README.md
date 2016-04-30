@@ -1,4 +1,4 @@
-Dreamdir – the Unix dream journal format
+**Dreamdir** – the Unix dream journal format
 
 Introduction
 ============
@@ -14,11 +14,13 @@ Dreamdir follows the *Unix philosophy*:
 Features:
 
 * Each dream is stored in its own plain text file.
-* Each dream file begins with a list of attributes, such as the date, the names of people who appeared in the dream, and tags.
+* Each dream file begins with a list of data fields (called *headers*), which can store things like the date, the names of people who appeared in the dream, and tags.
 * The remainder of the dream file is simply the text of your entry, and you can do anything you like with it.
-* The provided shell script `dr` makes it easy to create new dreams, view and edit existing dreams, and do complex searches.
+* The provided shell script `dr` makes it easy to create new dreams, view and edit existing dreams, and do complex searches. (See the “Searching Walkthrough” section for ideas of what you can do.)
 * Example scripts are provided for tasks like graphing day-to-day recall and generating indexes. A small Python library is also available for user scripts.
 * Free and open source: the Dreamdir format itself and this documentation are public domain, and all code is provided under the MIT license (see the LICENSE file for details).
+
+The `dr` shell script is still under quite active development, so if you wish to use it you should be aware that the syntax may change out from under you when you update. However, the Dreamdir format is so simple it is essentially fixed, and changing it to something else would be very easy, so you are totally safe using it as a storage format right now.
 
 
 Dreamdir format
@@ -29,12 +31,12 @@ Formatting rules
 
 Dreamdir scripts are permitted to assume that the rules specified in this section are followed, so you should definitely follow them. Conformance to some of the rules can be checked with the `dr validate` command.
 
-The easiest way to learn the format is to look at an example dream file:
+The easiest way to learn the format is to look at an example dream file (people’s names are censored here but are written out in full in the actual file format):
 
     Id:	00952
     Date:	2015-11-19
     Time:	6:02
-    People:	M, MD, T [names written out in full in the actual dream file]
+    People:	M., Md., T.
     Places:	Wal-Mart
     Tags:	store, radio, cottage, enchantment, police
 
@@ -56,16 +58,16 @@ The easiest way to learn the format is to look at an example dream file:
 
     [remainder of dream clipped]
 
-At the top you see the *headers*. Each header is separated from its *values* by a colon followed by a hard tab. (The requirement of a tab makes commands like `grep` easier to use, since a colon will not be followed by a tab in running text.) For attributes that can take multiple values, such as People, Places, and Tags, individual values are separated by a comma and a space.
+At the top you see the *headers*. Each header is separated from its *values* by a colon followed by a hard tab. (The requirement of a tab makes commands like `grep` easier to use, since a colon will not be followed by a tab in running text.) For headers that can take multiple values, such as People, Places, and Tags, individual values are separated by a comma and a space.
 
-Two attributes are **required** to form a valid dream file: the *Id* number and the *Date*. All other attributes are optional. There are no rules about what constitutes a valid attribute name, and it is fine for some dreams to not have a particular optional attribute at all. The headers can come in any order. A blank line follows the headers.
+Two headers are **required** to form a valid dream file: the *Id* number and the *Date*. All other headers are optional. There are no rules about what constitutes a valid header name, and it is fine for some dreams to not have a particular optional header at all. The headers can come in any order. A blank line follows the headers.
 
-The two required attributes are somewhat fussier, as follows:
+The two required headers are somewhat fussier, as follows:
 
 * **Id**: Dreamdir uses fixed-width five-digit ID numbers, beginning at `00001` and increasing for each dream up to `99999`. (If you manage to record 100,000 dreams, updates to the program and a beer are on me!)
 * **Date**: Dreamdir scripts expect ISO 8601-formatted dates (YYYY-MM-DD).
 
-Beneath the attributes, following a blank line, comes the text of the dream. As long as you don’t begin any later line with a header (i.e., a line containing a colon immediately followed by a hard tab), you can do anything you like here, though you may wish to look at the “Formatting guidelines” section, below.
+Beneath the headers, following a blank line, comes the text of the dream. As long as you don’t begin any later line with a header (i.e., a line containing a colon immediately followed by a hard tab), you can do anything you like here, though you may wish to look at the “Formatting guidelines” section, below.
 
 
 Formatting guidelines
@@ -80,14 +82,14 @@ These conventions are currently not known to any Dreamdir scripts, but they are 
 
 I use one physical line per paragraph and [double-space between sentences](http://stevelosh.com/blog/2012/10/why-i-two-space/), but I don’t see those conventions ever being expected by any code.
 
-Suggested attributes
---------------------
+Suggested headers
+-----------------
 
-As mentioned earlier, you can use any attributes you like as long as you include the ID number and the date. As a starting point, here are the ones I currently use:
+As mentioned earlier, you can use any headers you like as long as you include the ID number and the date. As a starting point, here are the ones I currently use:
 
 * **People**: Comma-separated list of waking-life people who appeared in the dream.
 * **Places**: Ditto for places with proper names and general geographic regions.
-* **Tags**: List of motifs, categories, and other elements that are useful to track across multiple dreams but don’t fit into other attributes.
+* **Tags**: List of motifs, categories, and other elements that are useful to track across multiple dreams but don’t fit into other headers.
 * **Title**: A title...
 * **Time**: If I had a clock handy and remembered to write it down, the time at which I woke up from the dream.
 * **Lucid**: Included and with a value of 1 if the dream was lucid at any point.
@@ -118,19 +120,240 @@ Of note:
 * Other scripts, including the `ddirparse` Python library `dr` uses for several tasks, are in the `scripts/` subdirectory.
 * Graphs generated by scripts go in the `graphs` subdirectory.
 
+Installation / creating a Dreamdir
+==================================
+
+The minimum you need to do to start your dreamdir is to clone down this repository, delete or move any files you don’t want (`LICENSE`, `README`, etc.), then `touch .dreamdir` to mark the folder as a dreamdir.
+
+You may also wish to set the environment variable `$DREAMDIR` to the location of your dreamdir and symlink the `dr` script somewhere on your `$PATH`; this way you can run `dr` from anywhere in your filesystem.
+
+If you want to use any graphs, you should `mkdir graphs`.
+
+`dr` should run on any POSIX-compliant system with a modern version of `bash` and `python2`. The graph/plot functions currently require an installation of R with ggplot2; in the future I may look into using a Python plot library instead to get rid of this annoying dependency.
+
+Dreamdir scripts
+================
+
+A number of scripts, largely written in Python, are provided in the `scripts/` directory of this repository; you may wish to use use some of these or use them as models for building your own scripts. Of particular note is `ddirparse.py`, which is a general library for use in developing Dreamdir scripts.
+
+Vim files
+=========
+
+For those who use vim, my syntax highlighting file and ftplugin file are located in the `vim/` directory; you can install these to your `~/.vim` directory directly or use your favorite plugin manager.
+
+You may want to get rid of the `setlocal cpoptions+=J` option if you don’t want to double-space between sentences (see the “Formatting guidelines” section above).
 
 The `dr` script
 ===============
 
-The `dr` script provides convenient tools to manage your dreamdir. The script works on the current directory (i.e., $PWD), so may be run like this:
+The `dr` script provides convenient tools to manage your dreamdir. The script assumes the current directory is your dreamdir, so it may be run like this:
 
     $ cd ~/dreams
     $ ./dr new
 
-Alternatively, `dr` recognizes the environment variable `$DREAMDIR` as the path to your dreamdir. If this variable is defined and you are not currently in a dreamdir when you run `dr`, that dreamdir will be used instead.
+Alternatively, `dr` recognizes the environment variable `$DREAMDIR` as the path to your dreamdir. If this variable is defined and you are not currently in a dreamdir when you run `dr`, that directory will be used instead.
 
-Help on the script can be obtained at the command line. There are three pages of help:
+Detailed help on all the functions and options you have can be obtained at the command line. There are three pages of help:
 
 * `dr help`: Shows a brief listing of all the actions available.
 * `dr help search`: Shows information on search expressions.
 * `dr help header-replace`: Shows information on header search-and-replace (this can be used to merge two similar tags together, for instance).
+
+Note that all commands can be abbreviated by their initials; `find` is `f`, for example, and `dump-headers` is `dh`. Keywords in search expressions can be abbreviated similarly, so to find dreams tagged with `Maud` in the `People` field, we can use `dr f t People Maud` as well as `dr find tagged People Maud`. The long names are normally used throughout the documentation for clarity, and they are easier to remember when you’re getting started and more readable in scripts, but once you know what you’re doing you can save quite a few keystrokes this way.
+
+Searching walkthrough
+---------------------
+
+A complete reference on search commands is available from `dr help search`, as well as a few concise examples. This section will instead give some examples of actually doing something with the program to give you an idea of what is possible.
+
+Though unassuming, the search function is quite powerful. The most common use is probably to look at or edit a given dream number:
+
+    $ dr dump-headers 429
+    Id: 00429
+    Date:   2012-04-28
+    Places: Chicago
+    People: U.J, M.
+    Tags:   Cinco de Mayo, marijuana, drugs
+
+    $ dr edit 429
+    ==> vim 00429.dre
+
+Assuming your editor supports opening multiple files at once, it’s also handy to open a set of dreams that you’re interested in looking at or editing:
+
+    $ dr edit 0100[345]
+    ==> vim 01003.dre 01004.dre 01005.dre
+
+This is all well and good if we know what specific dream we’re looking for, but what if we don’t? Imagine we look at #429 and decide we want to investigate the motif of marijuana further. What other dreams include it?
+
+    $ dr find tagged Tags marijuana
+    4 matches: [429, 584, 1181, 1198]
+
+I happen to know offhand that there’s also a dream that involves heroin (not its use, thankfully). Maybe we should look at that, too. We are allowed to put any number of criteria in one search expression and have the results ORed together:
+
+    $ dr find tagged Tags 'marijuana' tagged Tags 'heroin'
+    5 matches: [429, 584, 1181, 1198, 426]
+
+    $ dr find tagged Tags 'marijuana|heroin'
+    5 matches: [426, 429, 584, 1181, 1198]
+
+When did I have those dreams?
+
+    $ dr get-header Date 429 584 1181 1198 426
+    429: 2012-04-28
+    584: 2012-09-10
+    1181: 2016-03-26
+    1198: 2016-04-04
+    426: 2012-04-27
+
+If we wanted to look closer here, of course, we could use `dump-headers` to get an idea about these dreams, and `cat` or `edit` if we wanted to read the actual reports.
+
+So that we can get a better look at the more heavy-duty search features, let’s look at a different motif that shows up more frequently in my own dreams: trains.
+
+    $ dr find tagged Tags train
+    46 matches: [97, 105, 225, 269, 276, 299, 308, 416, 420, 456, 514, 563, \
+                 612, 668, 681, 709, 724, 725, 771, 774, 779, 785, 801, 872, \
+                 878, 923, 976, 979, 981, 987, 1005, 1031, 1032, 1044, 1080, \
+                 1103, 1114, 1162, 1182, 1188, 1191, 1205, 1210, 1213, 1216, 1222]
+
+Some of these no doubt involve *traveling* with a train, but some of them do not. How can we sort these out? Assuming we have added the tag “travel” as appropriate, we can use the `winnow` function. This takes a list of filenames on standard input, runs another search, and outputs only the filenames from standard input that also match the search criteria. We can use it in a pipeline, beginning with `filename-display`, like so:
+
+    $ dr filename-display tagged Tags train | dr winnow tagged Tags travel
+        00097.dre 00105.dre 00299.dre 00724.dre 00771.dre 00785.dre 00872.dre \
+        00979.dre 00987.dre 01031.dre 01032.dre 01103.dre 01114.dre 01188.dre \
+        01205.dre 01222.dre
+
+The filename output might not be what we prefer, but a list of filenames is also a valid search expression itself. We can thus use our shell’s command substitution to do whatever we want with the search results (note the use of `!!` for the previous command):
+
+    $ dr get-header Places $(!!)
+    771: San Diego
+    785: St. Olaf, California
+    872: Sunnyside, U.J.'s house
+    979: Dune Park station
+    987: St. Olaf
+    1031: St. Olaf, Buntrock
+    1032: TLC, Home Lodge
+    1114: Milwaukee
+    1188: Chicago, Dune Park station
+    1205: Atlantic City
+
+(Note that there are only 10 results, but there are in fact 16 matches: `get-header` displays nothing if an input dream doesn’t have that header, and **Places** is an optional header.) Of course, the output can also be piped into another `winnow` command for further refinement.
+
+Those are the ones that involved both trains and travel, but what about the ones that involve trains but *not* travel? With a moderate input size such as this one, we could manually take the set difference, but that would be stupid when we have the `-v` option:
+
+    $ dr find $(dr filename-display tagged Tags train | dr winnow -v tagged Tags travel)
+    30 matches: [225, 269, 276, 308, 416, 420, 456, 514, 563, 612, 668, 681, \
+                 709, 725, 774, 779, 801, 878, 923, 976, 981, 1005, 1044, \
+                 1080, 1162, 1182, 1191, 1210, 1213, 1216]
+
+If we want to check that we got the right result, we can always use the outer `dr find` with more arguments to create an OR condition and confirm that this is the same as the original:
+
+    $ dr find $(dr filename-display tagged Tags train | dr winnow -v tagged Tags travel) \
+              $(dr filename-display tagged Tags train | dr winnow tagged Tags travel)
+    46 matches: [225, 269, 276, 308, 416, 420, 456, 514, 563, 612, 668, 681, \
+                 709, 725, 774, 779, 801, 878, 923, 976, 981, 1005, 1044, \
+                 1080, 1162, 1182, 1191, 1210, 1213, 1216, 97, 105, 299, 724, \
+                 771, 785, 872, 979, 987, 1031, 1032, 1103, 1114, 1188, 1205, 1222]
+
+You will probably seldom need such a complicated condition, but it is possible to make one just using I/O redirection.
+
+We’ve seen AND, OR, and NOT conditions; XOR is the black sheep of Boolean logic. It is rarely necessary, but does have a few interesting applications. For instance, I might want to find all the cases where *only* trains or *only* travel are involved, but not both:
+
+    $ dr find $(dr filename-display tagged Tags train | dr xwinnow tagged Tags travel)
+    83 matches: [131, 212, 225, 236, 257, 268, 269, 276, 278, 291, 308, 320, \
+                 396, 416, 420, 456, 480, 514, 525, 529, 563, 566, 570, 571, \
+                 600, 612, 637, 668, 679, 681, 690, 709, 725, 753, 774, 779, \
+                 783, 801, 808, 843, 853, 857, 875, 878, 900, 902, 904, 912, \
+                 923, 933, 976, 981, 993, 1005, 1008, 1009, 1029, 1044, 1045, \
+                 1051, 1052, 1062, 1077, 1080, 1099, 1101, 1113, 1121, 1125, \
+                 1130, 1131, 1132, 1135, 1144, 1150, 1153, 1162, 1182, 1191, \
+                 1210, 1213, 1216, 1221]
+
+I’ve left out several useful types of search expressions; in addition to finding tags in headers and selecting dream numbers individually or with globs, you can do full-text search (`grep`), select numbers backwards from the end (`back` and `last`), and select some dreams randomly for your entertainment or edification (`random`).
+
+
+Summarizing headers
+-------------------
+
+There are two more tools that are useful if you don’t know what kind of tags and header values you have. These are more *list* tools than strictly *search* tools; they operate on the entire dreamdir rather than specific dreams.
+
+What headers do we actually use in our dreamdir?
+
+    $ dr list-headers
+    Date
+    Id
+    Lucid
+    People
+    Places
+    Tags
+    Time
+    Title
+
+From these options, we might like to take a closer look at, say, the places that show up in our dreams. We might also like to know *how often* these places appear; for this, we can use the *frequency*, `-f` option (also applicable to `list-headers`):
+
+    $ dr header-values -f Places
+    175 Sunnyside
+    160 St. Olaf
+     76 VHS
+     65 TLC
+    [...]
+      5 Chapel of the Resurrection
+      5 Chesterton Montessori
+      5 Luther College
+      5 Regents Hall
+    [...]
+      1 Quinlan & Fabish Pens
+      1 Regents
+      1 Ritolado
+    [...]
+      1 Wrigley Field
+
+The output is sorted by frequency, then in alphabetical order, or just in alphabetical order if you don’t show frequency.
+
+There’s something wrong with this output, though: I have **Regents Hall** as well as **Regents**. In fact, these are the same building; I’ve made a sloppy mistake in tagging. It’s time to use `header-replace`.
+
+Header search and replace
+-------------------------
+
+As seen in the above example, sometimes you will probably want to merge two tags together, or change the name of a tag. This can be a real pain manually and make you question the wisdom of using plain text files instead of a database. But never fear, `header-replace` comes to the rescue.
+
+First we should make sure that we have the right search expression to find the tag that’s wrong (`Regents`). The form of search expression we use with `dr find tagged` and `dr header-replace` is an *hregex*, the precise definition of which can be found in the online help (`dr help search`). For now, we just need to know that we can match the beginning and the end of a tag with `^` and `$` (the beginning- and end-of-line anchors in standard regexes). Thus:
+
+    $ dr dump-headers tagged Places '^Regents$'
+    Id:	01121
+    Date:	2016-02-21
+    Time:	5:45
+    People:	M.
+    Places:	Sunnyside, Regents, St. Olaf
+    Tags:	travel
+
+Then we actually call `header-replace` for the dreamdir:
+
+    $ dr header-replace Places '^Regents$' 'Regents Hall'
+    ** Running search-and-replace on all dreams. **
+
+    01121.dre:
+      -Regents
+      +Regents Hall
+      =Places:	Sunnyside, Regents Hall, St. Olaf
+
+    Changes will affect 1 files.
+
+Since the diff output looks like what we wanted, we then call it again with the *force*, `-f`, parameter to actually make the changes:
+
+    $ dr header-replace -f Places '^Regents$' 'Regents Hall'
+    WARNING: You are about to run a regex search-and-replace on all
+    specified dreams. Please check the results without -f first!
+    Do you really want to continue (y/n)? y
+    ** Running search-and-replace on all dreams. **
+
+    01121.dre modified
+    Changed 1 files.
+
+Note the two-step process. You should definitely *not* try to skip the first step; since this is essentially just a really fancy way of using `sed` across all your dream files, a particularly badly formed regex (e.g, replace `.*` with `q`) could do very bad things to your dreams (pun intended).
+
+Of course, this example is trivial, and this particular error could be fixed much faster by doing `dr edit` and changing the tag manually; the real benefit comes when there are tens of dreams (or more) that need changes.
+
+Support
+=======
+
+Please post bugs on the Github issue tracker and/or email me at `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention your operating system and version of bash. Improvements and pull requests are welcome as long as you release your code under the MIT license and they don’t make things unnecessarily complicated.

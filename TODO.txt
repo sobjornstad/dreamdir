@@ -1,5 +1,4 @@
-For ddir publication:
-* README/docs (some is now online)
-* getDreamsTagged I think is broken if ‘Id’ isn’t the first header -- fix
+* getDreamsTagged might be broken if ‘Id’ isn’t the first header -- fix
 * Tests? (https://github.com/sstephenson/bats)
-* Have a think about command naming, as this will be much harder to change once I publish anything.
+* An option to sort ORed-together conditions, or not
+* get-header should probably not skip dreams that don’t match at all?
