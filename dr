@@ -147,7 +147,7 @@ USAGEMSG
     exit 0
 }
 
-usagemsg_header_replace () {
+usagemsg_header_replace() {
     cat <<USAGEMSG
                              DR - HEADER-REPLACE
 `basename $0` header-replace [-f] <header> <find> <replace> [<filenames...>]
@@ -306,7 +306,7 @@ dreamfind() {
             # the user's regex to match '@@@@@' as BOL/EOL and not cross it
             # with '.'.
             header="$2"
-            pattern=$(echo "$3" | sed -e 's/\./[^@]/' | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/')
+            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
             newargs=$(grep -m 1 "$header:	" *.dre | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
