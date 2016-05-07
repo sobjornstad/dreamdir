@@ -610,6 +610,7 @@ Date:	$today
 Time:	
 Tags:	
 
+
 .
 w $newNum.dre
 w /tmp/$newNum.dre
