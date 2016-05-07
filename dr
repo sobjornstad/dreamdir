@@ -489,6 +489,7 @@ PYTH_MOSTWORDS
 )
     datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
     avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
+    avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
     earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
     latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
     mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
@@ -557,9 +558,9 @@ Average words per lucid dream: $avgLucidWordCount
 Percentage of words in lucid dreams: $percentLucidWordCount%
 
 ${colOn}Table summary${colOff}
-		Total	Avg	Max/Day	Today
+		Total	Avg/Day	Max/Day	Today
 # of dreams	$numDreams	$avgDreamsPerDay	$numMostDreams	$numDreamsToday
-Word count	$wordCount	$avgWordCount	$mostWords	$wordCountToday
+Word count	$wordCount	$avgWordCountDay	$mostWords	$wordCountToday
 
 See also 'dr list-headers -f' and 'dr header-values -f [header]'.
 STATS_DISP
