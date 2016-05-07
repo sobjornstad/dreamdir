@@ -1,0 +1,8 @@
+Id:	00008
+Date:	2011-05-08
+People:	M
+Tags:	foo, bar baz, foobar
+
+This is some test text for dream number 8.
+
+[Note: This dream has tags that match the hregex reference, and is used for testing that.]
