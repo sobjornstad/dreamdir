@@ -27,6 +27,8 @@ edit <search-expr>             :: pass matching dreams as args to \$EDITOR
 find <search-expr>             :: show numbers of matching dreams
 filename-display <search-expr> :: print filenames of matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
+word-count <search-expr>       :: show word count of the specified dreams;
+                                  front-end to 'drwc'
 winnow <search-expr>           :: read filenames from stdin and AND them with
                                   the results of another query
 xwinnow <search-expr>          :: read filenames from stdin and XOR them with
@@ -805,6 +807,18 @@ NEWDREAM
 
 "validate"|"v")
     validate_dreamdir
+    ;;
+
+"word-count"|"wc")
+    dreamfind "$@"
+    if [ -x "scripts/bin/drwc" ]; then
+        scripts/bin/drwc -p $args
+    else
+        python2 <<WC_END
+import scripts.ddirparse as dp
+print dp.getCount("$args".split(' '), asPrettyString=True)
+WC_END
+    fi
     ;;
 
 "stats"|"s")

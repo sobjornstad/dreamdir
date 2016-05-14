@@ -136,15 +136,28 @@ def countFile(f):
     return words
 
 def countAll():
-    "Sum word counts of all files in the dreamdir."
+    """
+    Sum word counts of all files in the dreamdir. See note in getCount()
+    docstring about performance.
+    """
     words = {'normal': 0, 'lucid': 0, 'notes': 0}
     for i in allDreamfiles():
         for k, v in countFile(i).iteritems():
             words[k] += v
     return words
 
-def getCount(filenames=None, normal=True, lucid=True, notes=True, asString=False):
-    "Get summed count of a list of filenames."
+def getCount(filenames=None, normal=True, lucid=True, notes=True, total=True,
+             asString=False, asPrettyString=False):
+    """
+    Get summed count of a list of filenames.
+
+    Note that this is slow as molasses in January over a large dreamdir. A C
+    implementation is available, scripts/drwc.c, which can be compiled into
+    scripts/bin/drwc using the included Makefile (if you have gcc installed).
+    This implementation runs over 10 times faster, though it doesn't know how
+    to handle multibyte characters and may thus result in slightly different
+    values.
+    """
     words = {'normal': 0, 'lucid': 0, 'notes': 0}
     if filenames is None:
         words = countAll()
@@ -152,12 +165,18 @@ def getCount(filenames=None, normal=True, lucid=True, notes=True, asString=False
         for file in filenames:
             for k, v in countFile(open(file)).iteritems():
                 words[k] += v
+    words['total'] = sum(count for type, count in words.iteritems())
 
     doReturn = [field for include, field
-                in zip((normal, lucid, notes), ('normal', 'lucid', 'notes'))
+                in zip((normal, lucid, notes, total),
+                       ('normal', 'lucid', 'notes', 'total'))
                 if include]
     if asString:
         return ' '.join(str(words[i]) for i in doReturn)
+    elif asPrettyString:
+        return '\n'.join(["%s:\t%s" % (i.title(), words[i])
+                         for i in ('normal', 'lucid', 'notes', 'total')
+                         if i in doReturn])
     else:
         return {k:v for k,v in words.iteritems() if k in doReturn}
 
