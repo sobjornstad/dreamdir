@@ -3,3 +3,4 @@
 *.dtags
 *.log
 *.pyc
+scripts/bin/*

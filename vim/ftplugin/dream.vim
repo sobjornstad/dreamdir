@@ -1,11 +1,6 @@
 " Dreamdir dream format vim settings
 " Copyright 2016 Soren Bjornstad; MIT license.
 
-if exists("drfile_loaded")
-    finish
-endif
-let drfile_loaded = 1
-
 setlocal tabstop=8
 setlocal noexpandtab
 setlocal spell
