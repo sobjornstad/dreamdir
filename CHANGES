@@ -1,0 +1,18 @@
+Changes in 1.0.1
+----------------
+
+Bugfixes:
+
+* Fix a bug where '.' was not correctly handled in search regexes.
+* Add a blank line at the end of the headers when creating a new dream; not
+  doing so was an accidental regression.
+* Fix a problem where options set by the vim plugin only applied to the first
+  buffer if multiple files were loaded.
+* Display the average words/day, not the average words/dream, as the "average"
+  in the statistics table.
+
+New features:
+
+* Add a new script to help with adding titles to dreams that don't have them.
+* Implement word count feature in C, and add a front-end in `dr`.
+* Write some tests for the `dr` script; more to come.

@@ -3,7 +3,7 @@
 # Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 # application version
-MYVERSION="1.0"
+MYVERSION="1.0.1"
 
 ##### DOCUMENTATION / HELP MESSAGES #####
 # usagemsg()

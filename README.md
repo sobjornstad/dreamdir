@@ -73,7 +73,7 @@ Beneath the headers, following a blank line, comes the text of the dream. As lon
 Formatting guidelines
 ---------------------
 
-These conventions are currently not known to any Dreamdir scripts, but they are rules I follow and may end up being recognized by scripts in future versions, so you may wish to follow them too. If you use the vim syntax highlighting file, these conventions are also recognized by it.
+Emphasis and verbatim quoting are not conventions currently recognized by any Dreamdir scripts. Lucid sections and commentary are recognized by the word count scripts (word counts can be split into “normal,” “lucid,” and “notes”). The vim syntax highlighting file recognizes all of these.
 
 * **Emphasis**: Use `*single stars*` or `_underlines_` around the area to be emphasized.
 * **Commentary**: Place notes that are not actually part of the dream in `[square brackets]`. The commentary may continue over multiple lines.
@@ -128,6 +128,10 @@ The minimum you need to do to start your dreamdir is to clone down this reposito
 You may also wish to set the environment variable `$DREAMDIR` to the path to your dreamdir and symlink the `dr` script somewhere on your `$PATH`; this way you can run `dr` from anywhere in your filesystem.
 
 If you want to use any graphs, you should `mkdir graphs`.
+
+There are two implementations of the dreamdir word count program, one in C and one in Python. The Python one will be acceptable for small dreamdirs, but the C implementation is over 20 times faster and is therefore better for large numbers of dreams. You can build the C implementation by changing into the scripts directory and running `make`; this requires gcc. The `word-count` function of `dr` will automatically choose the C implementation if it has been built, and the Python implementation otherwise.
+
+(Note: The C implementation probably doesn’t count multibyte characters exactly right; this leads to insignificant errors if you use only a few as I do, but might be a problem if you’re writing in a non-Latin alphabet. Let me know if you have problems or suggestions for this.)
 
 I keep my dreamdir under `git` control to keep track of any revisions I make to headers and dreams and as an extra backup against scripting and [PEBKAC](https://en.wikipedia.org/wiki/User_error#Acronyms_and_other_names) errors. You may wish to do likewise.
 
