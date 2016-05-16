@@ -20,15 +20,15 @@ An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 help                           :: show this usage message
 new                            :: create a new dream with the next available ID
                                   number and open it for editing
-cat <search-expr>              :: print all content of dreams matching
-                                  expression on stdout
+cat [-f] <search-expr>         :: print all content of dreams matching
+                                  expression on stdout; if -f, pass through
+                                  'fold -s' to limit line length to 80 chars
 dump-headers <search-expr>     :: print headers of matching dreams
 edit <search-expr>             :: pass matching dreams as args to \$EDITOR
 find <search-expr>             :: show numbers of matching dreams
 filename-display <search-expr> :: print filenames of matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
-word-count <search-expr>       :: show word count of the specified dreams;
-                                  front-end to 'drwc'
+word-count <search-expr>       :: show word count of the specified dreams
 winnow <search-expr>           :: read filenames from stdin and AND them with
                                   the results of another query
 xwinnow <search-expr>          :: read filenames from stdin and XOR them with
@@ -696,9 +696,16 @@ NEWDREAM
 "cat"|"c")
     usageMsg="Usage: `$basename $0` cat <search-expr>"
     ensure "! -z \"$1\"" "$usageMsg"
+    if [ "$1" == "-f" ]; then
+        printCommand="fold -s"
+        shift
+    else
+        printCommand="cat"
+    fi
+
     dreamfind "$@"
     for i in $args; do
-        cat "$i"
+        $printCommand "$i"
         echo -en "\n\n"
     done
     ;;
