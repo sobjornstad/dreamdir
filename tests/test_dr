@@ -36,7 +36,6 @@ helptest() {
     [ "$output" == "$result" ]
 }
 @test "dr - help messages" {
-    skip "unnecessary slowdown during development"
     # The helptest function extracts the actual help text from the script, so
     # it should not go out of date unless the format of the heredocs changes.
     helptest "dr" "usagemsg"
@@ -50,17 +49,18 @@ helptest() {
 }
 
 @test "dr new - create new dream file" {
-    EDITOR='cat' run dr new
-    expected=$(cat <<-EXPECTED
+	EDITOR='cat' run dr new
+	expected=$(cat <<-EXPECTED
 	Id:	00010
 	Date:	$(date '+%Y-%m-%d')
 	Time:	
 	Tags:	
 	
+
 	Deleting unmodified dream file.
 	EXPECTED)
-    [ "$status" == 0 ]
-    [ "$output" == "$expected" ]
+	[ "$status" == 0 ]
+	[ "$output" == "$expected" ]
 }
 
 @test "dr cat - print dream on stdout" {
@@ -78,7 +78,7 @@ helptest() {
 
 @test "dr dump-headers - print dream headers on stdout" {
     run dr dump-headers 0000[48]
-    expected=$(cat <<-EXPECTED
+	expected=$(cat <<-EXPECTED
 	Id:	00004
 	Date:	2011-05-06
 	People:	Q
@@ -180,6 +180,7 @@ fn_check() {
     fn_test "1, 2" [025]*0[12]
 
     # NOMATCH doesn't work since we have a different error message condition
+    # || true: this returns 1 and BATS will get mad if anything returns nonzero
     result=$(dr find '[025]*[12]0') || true
     [ "$result" == "Matched nonexistent file '[025]*[12]0.dre'; please check your search terms and try again." ]
 }
