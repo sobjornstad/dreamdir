@@ -1,3 +1,14 @@
+/* drwc - Dreamdir word count utility
+ * Copyright 2016 Soren Bjornstad.
+ * See usage message string below.
+ *
+ * Exit status:
+ * 0 - success
+ * 1 - invalid command-line parameters
+ * 2 - file not found
+ * 127 - impossible condition invoked (programming error)
+ */
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -14,40 +25,43 @@ struct dream_wc {
 };
 
 struct opts_field {
-    bool show_all     : 1;
     bool show_normal  : 1;
     bool show_lucid   : 1;
     bool show_notes   : 1;
     bool show_total   : 1;
     bool pretty_print : 1;
+    bool summary_only : 1;
 };
 
 void usage_msg (char **argv);
 struct opts_field new_opts (void);
 struct opts_field parse_opts (int argc, char **argv, int *shift_args);
 struct dream_wc wc (char *name);
+void print_counts (const struct dream_wc *counts, const char* filename,
+                   const struct opts_field *opts);
 int main (int argc, char **argv);
 
 const char *USAGE_MSG =
-  "drwc - Dreamdir word count utility\n" 
-  "Copyright (c) 2016 Soren Bjornstad; see LICENSE for details.\n" 
-  "\n" 
-  "Usage: %s [options] filenames...\n" 
-  "Print the cumulative word count for all arguments.\n" 
-  "\n" 
-  "Options:\n" 
-  "-h   Show this usage message.\n" 
-  "-n   Display the count of \"normal\" words (not in notes or lucid sections).\n" 
-  "-l   Display the count of \"lucid\" words (words in {curly braces}).\n" 
-  "-o   Display the count of \"notes\" words (words in [square brackets]).\n" 
-  "-t   Display the total of the above counts.\n" 
-  "-p   Pretty-print results, rather than showing the machine-readable format.\n" 
-  "\n" 
-  "Counts are always shown in the order <normal> <lucid> <notes> <total>, with\n" 
-  "gaps for any counts that are not included. The machine-readable format is\n" 
-  "separated by spaces; the pretty format is separated by newlines and has labels.\n" 
-  "\n" 
-  "An invocation with no options is equivalent to '%s -nlot'.\n";
+  "drwc - Dreamdir word count utility\n"
+  "Copyright (c) 2016 Soren Bjornstad; see LICENSE for details.\n"
+  "\n"
+  "Usage: %s [options] filenames...\n"
+  "Print word count for arguments, not including headers.\n"
+  "\n"
+  "Options:\n"
+  "-h   Show this usage message.\n"
+  "-n   Display the count of \"normal\" words (not in notes or lucid sections).\n"
+  "-l   Display the count of \"lucid\" words (words in {curly braces}).\n"
+  "-o   Display the count of \"notes\" words (words in [square brackets]).\n"
+  "-t   Display the total of the above counts.\n"
+  "-p   Pretty-print results, rather than showing the machine-readable format.\n"
+  "-s   Display only the total (summary) word count, not each file's count.\n"
+  "\n"
+  "Counts are always shown in the order <normal> <lucid> <notes> <total>, with\n"
+  "gaps for any counts that are not included. The machine-readable format is\n"
+  "separated by spaces; the pretty format is separated by newlines and has labels.\n"
+  "\n"
+  "If none of -nlot are used, all four counts will be shown.\n";
 
 void usage_msg (char **argv)
 {
@@ -56,7 +70,7 @@ void usage_msg (char **argv)
 
 struct opts_field new_opts (void)
 {
-    struct opts_field opts = {true, false, false, false, false, false};
+    struct opts_field opts = {false, false, false, false, false};
     return opts;
 }
 
@@ -70,8 +84,8 @@ struct opts_field parse_opts (int argc, char **argv, int *shift_args)
 
     struct opts_field opts = new_opts();
     char opt;
-    opterr = 0;
-    while ((opt = getopt(argc, argv, "hnlotp")) != -1) {
+    opterr = 0; // say we want to do our own error handling for getopt
+    while ((opt = getopt(argc, argv, "hnlotps")) != -1) {
         switch (opt) {
             case 'h':  usage_msg(argv);           exit(0);
             case 'n':  opts.show_normal  = true;  break;
@@ -79,6 +93,7 @@ struct opts_field parse_opts (int argc, char **argv, int *shift_args)
             case 'o':  opts.show_notes   = true;  break;
             case 't':  opts.show_total   = true;  break;
             case 'p':  opts.pretty_print = true;  break;
+            case 's':  opts.summary_only = true;  break;
             case '?':
                 fprintf(stderr, "Invalid option '%c'.\n", optopt);
                 usage_msg(argv);
@@ -86,15 +101,15 @@ struct opts_field parse_opts (int argc, char **argv, int *shift_args)
                 break;
             default:
                 fprintf(stderr, "Unhandled case %c in option routine!\n", opt);
-                exit(1);
+                exit(127);
                 break;
         }
     }
     /* If we didn't specify what we wanted to show, we want to see everything. */
     if (! (opts.show_normal || opts.show_lucid ||
            opts.show_notes  || opts.show_total) ) {
-        opts.show_normal = opts.show_lucid = opts.show_notes = true;
-        opts.show_total = true;
+        opts.show_normal = opts.show_lucid =
+            opts.show_notes = opts.show_total = true;
     }
 
     *shift_args = optind;
@@ -152,6 +167,29 @@ struct dream_wc wc (char *name)
     return counts;
 }
 
+void print_counts (const struct dream_wc *counts, const char* filename,
+                   const struct opts_field *opts)
+{
+    if (opts->pretty_print) {
+        if (!opts->summary_only)
+            printf("\n");
+        printf("~ %s ~\n", filename);
+    }
+    if (opts->show_normal)
+        printf(opts->pretty_print ? "Normal:\t%d\n" : "%d ", counts->normal);
+    if (opts->show_lucid)
+        printf(opts->pretty_print ? "Lucid:\t%d\n" : "%d ", counts->lucid);
+    if (opts->show_notes)
+        printf(opts->pretty_print ? "Notes:\t%d\n" : "%d ", counts->notes);
+    if (opts->show_total)
+        printf(opts->pretty_print ? "Total:\t%d\n" : "%d ",
+               counts->normal + counts->lucid + counts->notes);
+    if (!opts->pretty_print) {
+        printf("%s", filename);
+        printf("\n");
+    }
+}
+
 int main (int argc, char **argv)
 {
     int shift_args;
@@ -168,21 +206,14 @@ int main (int argc, char **argv)
     }
     while (*argv) {
         count = wc(*argv);
+        if (!opts.summary_only)
+            print_counts(&count, *argv, &opts);
         total_counts.normal += count.normal;
-        total_counts.lucid += count.lucid;
-        total_counts.notes += count.notes;
+        total_counts.lucid  += count.lucid;
+        total_counts.notes  += count.notes;
         argv += 1;
     }
 
-    if (opts.show_normal)
-        printf(opts.pretty_print ? "Normal:\t%d\n" : "%d ", total_counts.normal);
-    if (opts.show_lucid)
-        printf(opts.pretty_print ? "Lucid:\t%d\n" : "%d ", total_counts.lucid);
-    if (opts.show_notes)
-        printf(opts.pretty_print ? "Notes:\t%d\n" : "%d ", total_counts.notes);
-    if (opts.show_total)
-        printf(opts.pretty_print ? "Total:\t%d" : "%d ",
-               total_counts.normal + total_counts.lucid + total_counts.notes);
-    printf("\n");
+    print_counts(&total_counts, "total", &opts);
     return 0;
 }

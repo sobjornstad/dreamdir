@@ -28,7 +28,8 @@ edit <search-expr>             :: pass matching dreams as args to \$EDITOR
 find <search-expr>             :: show numbers of matching dreams
 filename-display <search-expr> :: print filenames of matching dreams
 get-header <header> <search-expr> :: print values of header for matching dreams
-word-count <search-expr>       :: show word count of the specified dreams
+word-count <search-expr>       :: show word count of the specified dreams, not
+                                  including headers
 winnow <search-expr>           :: read filenames from stdin and AND them with
                                   the results of another query
 xwinnow <search-expr>          :: read filenames from stdin and XOR them with
@@ -744,6 +745,8 @@ NEWDREAM
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     ensure "! -z \"$3\"" "$usageMsg"
+    #TODO: This should escape them rather than disallowing them -- a pipe
+    # might be a nice thing to have in a regex.
     [[ "$2" =~ "|" || "$3" =~ "|" ]] && die "Pipes (|) are not valid in search/replace regexes!\n$usageMsg"
 
     #TODO: Take an automatic backup before beginning?

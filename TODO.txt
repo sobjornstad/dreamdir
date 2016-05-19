@@ -1,4 +1,5 @@
 * getDreamsTagged might be broken if ‘Id’ isn’t the first header -- fix
-* Tests? (https://github.com/sstephenson/bats)
+* More work on tests
 * An option to sort ORed-together conditions, or not
 * get-header should probably not skip dreams that don’t match at all?
+* Consider making header-values and get-headers take search expressions too
