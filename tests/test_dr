@@ -121,8 +121,9 @@ fn_check() {
     else local match="$numMatches matches: [$desiredResult]" 
     fi
 
-    # print debug information if failure
-    if [ "$output" != "$match" ]; then
+    # Replace backspaced characters in output with nothing, test, and
+    # print debug information if failure.
+    if [ "$(echo $output | sed -e 's/.//')" != "$match" ]; then
         echo -e "Output:\t$output"
         echo -e "Expected:\t$match"
         false
@@ -182,5 +183,9 @@ fn_check() {
     # NOMATCH doesn't work since we have a different error message condition
     # || true: this returns 1 and BATS will get mad if anything returns nonzero
     result=$(dr find '[025]*[12]0') || true
-    [ "$result" == "Matched nonexistent file '[025]*[12]0.dre'; please check your search terms and try again." ]
+    expected=$(cat <<-EXPECTED
+	Matched nonexistent file '[025]*[12]0.dre'; please check your search terms and try again.
+	(Type 'dr help search' for help.)
+	EXPECTED)
+    [ "$result" == "$expected" ]
 }
