@@ -66,13 +66,15 @@ Select dreams matching search expression <expr> and take <action>:
   f[ind]           :: print their numbers
   f[ilename-]d[isplay] :: print their filenames
   g[et-]h[eader]   :: print their values for the specified header
+  w[ord]-c[ount]   :: print their word counts, excluding headers
   w[innow]         :: read filenames from stdin, print filenames present in
                       both query results and stdin (AND)
   x[winnow]        :: read filenames from stdin, print filenames present in
                       either query results or stdin but not both (XOR)
 
                              SEARCH EXPRESSIONS
-A search expression is one or more of the following (implicitly ORed together):
+A search expression is one or more of the following (multiple search
+expressions are implicitly ORed together):
   * a dream number (leading zeroes allowed but not required)
   * a shell globbing pattern for some dream numbers (leading zeroes required)
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
@@ -107,10 +109,9 @@ end of a single item.  For example, with header "Tags: foo, bar baz, foobar":
   ^baz$     :: -
   o, ba     :: -
   foo.*baz  :: -
-Padding your expression with ^ and $ is usually a good idea unless you're
-specifically trying to match substrings; otherwise 'cat' matches 'catalog',
-and 'duplicate'. If you want to avoid 'catalog' but still get 'cat food', you
-can pad with '\\b' (word boundary).
+Padding your expression with ^ and $ is often useful; otherwise 'cat' matches
+'catalog' and 'duplicate'. If you want to avoid 'catalog' but still get 'cat
+food', you can pad with '\\b' (word boundary).
 
 With 'dr find tagged', a dream matches if any comma-separated item matches
 the hregex.
@@ -119,12 +120,13 @@ With 'dr header-replace', only the specific comma-separated item that matches
 is replaced.
 
                              OPTIONS
-The following options may be used with any search expression:
+The following options may be used with any search expression. They are applied
+to the results in this order if several are used:
+  -v     :: invert match (show only dreams that do *not* match expression)
   -r     :: reverse the order of returned results
   -s     :: randomize (shuffle) the order of returned results
   -l <N> :: show only the first N results (if N is negative, remove N results
             from the end of the list)
-  -v     :: invert match (show only dreams that do *not* match expression)
 
                              EXAMPLES
 dr edit 50                    :: edit dream number 50
@@ -332,12 +334,12 @@ dreamfind() {
 
     # apply option flags
     args=$(echo $args | cat -) # looks like a no-op, but it expands globs
-    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
-    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
-    [ $limit -ne 0 ]     && args=$(echo $args | head -n $limit)
     if [ $invert -eq 1 ]; then
         args=$(comm -3 <(ls *.dre | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
     fi
+    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
+    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
+    [ $limit -ne 0 ]     && args=$(echo $args | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."
