@@ -343,7 +343,8 @@ dreamfind() {
     [ -z "$args" ] && die "No results."
     for i in $args
     do
-        ensure "-f \"$i\"" "Matched nonexistent file '$i'; please check your search terms and try again."
+        error="Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
+        ensure "-f \"$i\"" "$error"
     done
 }
 
@@ -645,8 +646,9 @@ NEWDREAM
 "find"|"f")
     [ -z "$1" ] && die "'`basename $0` find' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
-    results=$(echo $args | sed -e 's/\.dre 00*/, /g' | sed -e 's/^00*/[/' | sed -e 's/\.dre$/]/')
-    echo "$(echo $results | wc -w) matches: $results"
+    # remove leading zeroes and '.dre' for display, add separator commas
+    results="$(echo $args | sed -e 's/\(^\| \)00*/\1/g' | sed -e 's/\.dre/,/g')"
+    echo -e "$(echo $results | wc -w) matches: [$results\b]"
     ;;
 
 "filename-display"|"fd")
