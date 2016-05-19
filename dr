@@ -4,7 +4,7 @@
 
 ##### CONSTANTS #####
 # application version
-MYVERSION="1.0.1"
+MYVERSION="1.0.2"
 
 # matching pattern for dream files
 dreamGlob='[0-9][0-9][0-9][0-9][0-9].dre'

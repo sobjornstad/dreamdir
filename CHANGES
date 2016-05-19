@@ -1,3 +1,35 @@
+Changes in 1.0.2
+----------------
+
+This is primarily a bugfix release.
+
+Bugfixes:
+
+* Add an ftdetect file so the vim plugin actually loads on .dre files out of
+  the box.
+* Remove dependency on a script on my local machine that wasn't included in the
+  distribution.
+* The formatting of 'dr find' is no longer messed up if dreams with ID numbers
+  greater than 9999 are included in the output.
+* Search expression options -vrsl are now applied in a consistent and documented
+  order.
+* Dream files are now pulled with the glob '[0-9][0-9][0-9][0-9][0-9].dre'
+  rather than '*.dre', so other .dre files in the directory that are not dreams
+  (for instance, temporary files that you wanted syntax highlighting to work on)
+  will not confuse the search functions.
+* Fix tests several times, and add a pre-commit hook that can be set to run
+  tests before committing.
+* Fix RegeneratePlots.sh getting very confused when the scripts/ directory in a
+  dreamdir is a symlink.
+
+New features:
+
+* Add a -f option for 'dr cat' that folds lines at 80 characters, trying to do
+  so at word boundaries (using 'fold -s').
+* Print word counts for each individual dream, not just the total (and add an
+  option that prints only the total).
+
+
 Changes in 1.0.1
 ----------------
 
