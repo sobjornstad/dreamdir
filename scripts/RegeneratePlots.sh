@@ -8,15 +8,13 @@
 cd $DREAMDIR
 reason="Please run this script from the dreamdir root directory."
 [ ! -f .dreamdir ] && echo "$reason" && exit 1
-pushd scripts
 
 echo -n "Tabulating dream dates..."
-python ./date-dotplot.py
+python scripts/date-dotplot.py
 echo -e "done.\nGraphing data..."
-R --vanilla --slave < ./date-dotplot.R
+R --vanilla --slave < scripts/date-dotplot.R
 
 echo -n "Cleaning up..."
 rm dotplot-data.csv
 rm -f Rplots.pdf
-popd
 echo "done."

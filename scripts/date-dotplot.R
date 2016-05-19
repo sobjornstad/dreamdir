@@ -1,5 +1,5 @@
 R_TRANSFER_FILE = 'dotplot-data.csv'
-OUTPUT_LOCATION = '../graphs/'
+OUTPUT_LOCATION = 'graphs/'
 
 minYear = 2011
 maxYear = 2016
