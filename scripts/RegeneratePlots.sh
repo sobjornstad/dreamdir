@@ -4,12 +4,10 @@
 # Python script that pulls the data using 'ddirparse' and, if desired, an R
 # script that plots the data.
 
-. ~/bin/common.sh 1
-
 [ -z "$DREAMDIR" ] && DREAMDIR=$PWD
 cd $DREAMDIR
 reason="Please run this script from the dreamdir root directory."
-ensure '-f .dreamdir' "$reason"
+[ ! -f .dreamdir ] && echo "$reason" && exit 1
 pushd scripts
 
 echo -n "Tabulating dream dates..."
