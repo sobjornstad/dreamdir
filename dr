@@ -758,18 +758,11 @@ NEWDREAM
     # might be a nice thing to have in a regex.
     [[ "$2" =~ "|" || "$3" =~ "|" ]] && die "Pipes (|) are not valid in search/replace regexes!\n$usageMsg"
 
-    #TODO: Take an automatic backup before beginning?
     if [ "$1" == "-f" ]; then
-        echo "WARNING: You are about to run a regex search-and-replace on all"
-        echo "specified dreams. Please check the results without -f first!"
-        read -p "Do you really want to continue (y/n)? " doCont
-        if [ "$doCont" != "y" ]; then
-            exit 0
-        fi
-        doReplace=1
+        doChange=1
         shift
     else
-        doReplace=0
+        doChange=0
     fi
 
     header="$1"
@@ -777,23 +770,42 @@ NEWDREAM
     replpat="$3"
     if [ -z "$4" ]; then
         filenames=$(ls $dreamGlob)
-        #TODO: Suggest having this show number of total dreams in dreamdir.
-        echo -e "** Running search-and-replace on all dreams. **\n"
     else
         filenames=""
-        numChange=0
         while [ ! -z "$4" ]; do
             ensure "-f \"$4\"" "$usageMsg\nThe file \"$4\" does not exist."
             filenames="$filenames $4"
-            numChange=$((numChange+1))
             shift
         done
         #TODO FIXME: Make this not incorrectly pluralize 1 file.
-        echo -e "** Running search-and-replace on the $numChange dreams specified. **\n"
+    fi
+
+    # Since the replace loop is rather expensive, first do a preliminary search
+    # so that we only run the replace loop on dreams that we know match the
+    # search hregex.
+    dreamfind tagged "$header" "$searchpat"
+
+    # If we're actually making changes, confirm that we really want to.
+    if [ $doChange == 1 ]; then
+        numToChange=$(echo "$args" | wc -w)
+        echo "You are about to apply a search-and-replace that will affect $numToChange dreams."
+        if [ $numToChange -ge 50 ]; then
+            echo -e "\e[1;31mThat looks like quite a few dreams.\e[0m"
+        fi
+        echo "If this doesn't sound right, please check the results without -f first!"
+        read -p "Do you wish to continue (y/n)? " doCont
+        if [ "$doCont" != "y" ]; then
+            exit 0
+        fi
+        doReplace=1
+        shift
+    else
+        echo "                    === Preview of changes to be applied ==="
+        doReplace=0
     fi
 
     numAffected=0
-    for filename in $filenames
+    for filename in $args
     do
         headerline=$(grep -m 1 "$header:	" "$filename")
         oldtags=$(echo "$headerline" | sed -e "s/$header:	//" | sed -e 's/, /\n/g')
@@ -820,6 +832,7 @@ NEWDREAM
         echo "Changed $numAffected files."
     else
         echo "Changes will affect $numAffected files."
+        echo "To make these changes, rerun the command with the '-f' option."
     fi
 
     ;;
