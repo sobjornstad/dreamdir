@@ -32,6 +32,10 @@ edit                :: pass matching dreams as args to \$EDITOR
 find                :: show numbers of matching dreams
 filename-display    :: print filenames of matching dreams
 get-header <header> :: print values of header for matching dreams
+header-values [-f] <header> :: show a list of all values used for <header>
+                       in matching dream (include frequency if -f)
+list-headers [-f]   :: list headers used in at least one matching dream
+                       (with frequency if -f specified)
 word-count          :: show word count of the specified dreams, not
                        including headers
 winnow              :: read filenames from stdin and AND them with
@@ -40,23 +44,20 @@ xwinnow             :: read filenames from stdin and XOR them with
                        the results of another query
 
                              UTILITIES
-Utilities perform some other action on your dreamdir.
+Utilities perform some other action.
 
 help                        :: show this usage message
 header-replace              :: regex search-and-replace on headers; type
                                '`basename $0` help header-replace' for info
-header-values [-f] <header> :: show a list of all values used for <header> in
-                               any dream (include frequency if -f)
 last-lucid                  :: edit the dream with the highest number that
                                has a Lucid header
-list-headers [-f]           :: list headers used in at least one dream (with
-                               frequency if -f specified)
 new                         :: create a new dream with the next available ID
                                number and open it for editing
 regenerate-graphs           :: run scripts/RegeneratePlots.sh to make graphs
 stats                       :: display dream statistics
 validate                    :: format sanity check: ensure all dreams have
                                IDs and dates and ID numbers are contiguous
+version                     :: print version number of this 'dr'
 
 An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 USAGEMSG
@@ -751,27 +752,39 @@ NEWDREAM
     ;;
 
 "list-headers"|"lh")
-    if [[ "$1" == "-f" ]]; then
-        grep -h '^.*:	' $dreamGlob | sed -e 's/^\(.*\):	.*$/\1/' | sort | \
-                uniq -c | sort -b -k 1rn -k 2
+    if [ "$1" == "-f" ]; then
+        showFreq=1
+        shift
     else
-        grep -h '^.*:	' $dreamGlob | sed -e 's/^\(.*\):	.*$/\1/' | sort | uniq
+        showFreq=0
+    fi
+    ensure "! -z \"$1\"" "Usage: `basename $0` list-headers [-f] <search-expr>"
+    dreamfind "$@"
+    results=$(grep -h '^.*:	' $args | sed -e 's/^\(.*\):	.*$/\1/' | sort)
+    if [ $showFreq == 1 ]; then
+        echo "$results" | uniq -c | sort -b -k 1rn -k 2
+    else
+        echo "$results" | uniq
     fi
     ;;
 
 "header-values"|"hv")
     ensure "! -z \"$1\"" "Usage: `basename $0` header-values [-f] <header>"
-    if [[ "$1" == "-f" || "$2" == "-f" ]]; then
+    if [ "$1" == "-f" ]; then
         showfreq=1
-        [[ "$1" == "-f" ]] && shift # force header type to $1 in either order
+        shift
     else
         showfreq=0
     fi
-    ensure "! -z \"$1\"" "Please specify a header type, like '`basename $0` header-values Tags'."
+    ensure "! -z \"$1\"" \
+        "Please specify a header type, like '`basename $0` header-values Tags'."
+    ensure "! -z \"$2\"" \
+        "Usage: `basename $0` header-values [-f] <header> <search-expr>"
+    header="$1"
+    shift
+    dreamfind "$@"
 
-    results=$(grep "$1:	" $dreamGlob | cut -d ':' -f 3 | cut -c 2- | \
-    #results=$(grep "$1:	" $dreamGlob | awk '{split($0, a, ":"); print a[4],a[3],a[2],a[1]}' | cut -c 2- | \
-            sed -e 's/, /\n/g' | sort)
+    results=$(grep "$header:	" $args | sed -e 's/.*:	//' | sed -e 's/, /\n/g' | sort)
     if [ $showfreq == 1 ]; then
         echo "$results" | uniq -c | sort -b -k 1rn -k 2
     else

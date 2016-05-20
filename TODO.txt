@@ -2,4 +2,5 @@
 * More work on tests
 * An option to sort ORed-together conditions, or not
 * get-header should probably not skip dreams that don’t match at all?
-* Consider making header-values and get-headers take search expressions too
+* Clean up error messages when using invalid syntax for actions; they do all
+  sorts of different things.
