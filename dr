@@ -248,6 +248,36 @@ popd () {
     command popd "$@" > /dev/null
 }
 
+# numerize()
+# Display some string in singular or plural as appropriate.
+#
+# Arguments:
+# $1 - the number to condition the singular/plural status on
+# $2 - the singular form
+# $3 - the plural form (optional; if not provided, defaults to singular + 's')
+#
+# Example:
+# $ echo "I think there $(numerize $n "is" "are") $n $(numerize $n "foo") here."
+# I think there is 1 foo here.
+# I think there are 2 foos here.
+numerize() {
+    ensure "! -z \"$1\"" "Invalid arguments given to numerize()"
+    ensure "! -z \"$2\"" "Invalid arguments given to numerize()"
+    num=$1
+    singular=$2
+    if [ -z "$3" ]; then
+        plural="$singular"s
+    else
+        plural=$3
+    fi
+
+    if [ $num -ne 1 ]; then
+        echo "$plural"
+    else
+        echo "$singular"
+    fi
+}
+
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
 # Parse a search-expr; called by find/edit/winnow/etc to do the dirty
@@ -774,7 +804,6 @@ NEWDREAM
             filenames="$filenames $4"
             shift
         done
-        #TODO FIXME: Make this not incorrectly pluralize 1 file.
     fi
 
     # Since the replace loop is rather expensive, first do a preliminary search
@@ -785,7 +814,8 @@ NEWDREAM
     # If we're actually making changes, confirm that we really want to.
     if [ $doChange == 1 ]; then
         numToChange=$(echo "$args" | wc -w)
-        echo "You are about to apply a search-and-replace that will affect $numToChange dreams."
+        echo "You are about to apply a search-and-replace that will affect" \
+        "$numToChange $(numerize $numToChange dream)."
         if [ $numToChange -ge 50 ]; then
             echo -e "\e[1;31mThat looks like quite a few dreams.\e[0m"
         fi
@@ -824,11 +854,10 @@ NEWDREAM
         fi
         numAffected=$((numAffected+1))
     done
-    #TODO FIXME: Make this not incorrectly pluralize 1 file.
     if [ $doReplace == 1 ]; then
-        echo "Changed $numAffected files."
+        echo "Changed $numAffected $(numerize $numAffected file)."
     else
-        echo "Changes will affect $numAffected files."
+        echo "Changes will affect $numAffected $(numerize $numAffected file)."
         echo "To make these changes, rerun the command with the '-f' option."
     fi
 
