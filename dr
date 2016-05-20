@@ -90,6 +90,9 @@ expressions are given, their results will be concatenated.
 
 N defaults to 1 if not provided.
 
+A search expression may be entirely blank; in this case all dreams are
+selected. Options are still parsed (see below).
+
 Globbing patterns used in search expressions should be quoted (e.g., to edit
 all dreams, use "dr edit '*'" , not "dr edit *").  They will be expanded either
 way, but 'dr' parses large numbers of arguments much more slowly, so the search
@@ -151,6 +154,8 @@ dr fd 006[12]? |              :: display filenames for dreams #610-629 that
   dr winnow tagged Tags 'dog'    also have a tag containing 'dog'
 dr fd t Tags '^cat$' |        :: show dreams that are not tagged exactly 'cat'
   dr xwinnow grep '\\bcat\\b'      but do use the word 'cat' somewhere else
+dr wc                         :: display a word count of all dreams
+dr wc -sl 12 all              :: display a word count of 12 random dreams
 USAGEMSG
     exit 0
 }
@@ -158,9 +163,9 @@ USAGEMSG
 usagemsg_header_replace() {
     cat <<USAGEMSG
                              DR - HEADER-REPLACE
-`basename $0` header-replace [-f] <header> <find> <replace> [<filenames...>]
+`basename $0` header-replace [-f] <header> <find> <replace> <search-expr>
 
-In <filenames> or the entire dreamdir, replace instances of <find> in header
+In dreams matching <search-expr>, replace instances of <find> in header
 <header> with <replace>.  <header> and <replace> are EREs; <find> is
 specifically an hregex (see 'help dr search' for more information).
 
@@ -289,6 +294,7 @@ dreamfind() {
     df_doShuf=0       # for further processing has to reapply these filters
     local limit=0
     local invert=0
+    OPTIND=0  # if loop doesn't run at all, we need to make sure it's reset
     while getopts rsl:v opt; do
         case $opt in
         r)
@@ -303,7 +309,14 @@ dreamfind() {
     done
     shift $((OPTIND-1))
 
-    # Now compile a list of all the dreams we've specified.
+    # No arguments is equivalent to "all".
+    if [ -z "$1" ]; then
+        # http://stackoverflow.com/questions/13762370/
+        # assigning-to-a-positional-parameter
+        set -- "all"
+    fi
+
+    # Otherwise, compile a list of all the dreams we've specified.
     args=""
     local newargs=""
     local howMany=0
@@ -340,7 +353,7 @@ dreamfind() {
             ;;
 
         "tagged"|"t")
-            local usage="Usage: dr edit tagged <header regex> <value regex>"
+            local usage="Usage: dr $action tagged <header regex> <value regex>"
             ensure "! -z \"$2\"" "$usage"
             ensure "! -z \"$3\"" "$usage"
             # The idea here is to replace the delimiters with '@@@@@' (which we
@@ -677,13 +690,11 @@ NEWDREAM
     ;;
 
 "edit"|"e")
-    [ -z "$1" ] && die "'`basename $0` edit' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     $EDITOR $args
     ;;
 
 "find"|"f")
-    [ -z "$1" ] && die "'`basename $0` find' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(echo $args | sed -e 's/\(^\| \)00*/\1/g' | sed -e 's/\.dre/,/g')"
@@ -691,7 +702,6 @@ NEWDREAM
     ;;
 
 "filename-display"|"fd")
-    [ -z "$1" ] && die "'`basename $0` filename-display' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     echo $args
     ;;
@@ -725,8 +735,6 @@ NEWDREAM
     ;;
 
 "dump-headers"|"dh")
-    usageMsg="Usage: `basename $0` dump-headers <search-expr>"
-    ensure "! -z \"$1\"" "$usageMsg"
     dreamfind "$@"
     for i in $args; do
         [ ! -f "$i" ] && echo "File $i not found."
@@ -736,7 +744,6 @@ NEWDREAM
     ;;
 
 "cat"|"c")
-    [ -z "$1" ] && die "'`basename $0` cat' needs arguments. See 'dr help search' for help."
     if [ "$1" == "-f" ]; then
         printCommand="fold -s"
         shift
@@ -758,7 +765,6 @@ NEWDREAM
     else
         showFreq=0
     fi
-    ensure "! -z \"$1\"" "Usage: `basename $0` list-headers [-f] <search-expr>"
     dreamfind "$@"
     results=$(grep -h '^.*:	' $args | sed -e 's/^\(.*\):	.*$/\1/' | sort)
     if [ $showFreq == 1 ]; then
@@ -769,7 +775,6 @@ NEWDREAM
     ;;
 
 "header-values"|"hv")
-    ensure "! -z \"$1\"" "Usage: `basename $0` header-values [-f] <header>"
     if [ "$1" == "-f" ]; then
         showfreq=1
         shift
@@ -778,8 +783,6 @@ NEWDREAM
     fi
     ensure "! -z \"$1\"" \
         "Please specify a header type, like '`basename $0` header-values Tags'."
-    ensure "! -z \"$2\"" \
-        "Usage: `basename $0` header-values [-f] <header> <search-expr>"
     header="$1"
     shift
     dreamfind "$@"
@@ -793,7 +796,7 @@ NEWDREAM
     ;;
 
 "header-replace"|"hr")
-    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> [<filenames>]\nType 'dr help header-replace' for details."
+    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> <search-expr>\nType 'dr help header-replace' for details."
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     ensure "! -z \"$3\"" "$usageMsg"
@@ -810,21 +813,16 @@ NEWDREAM
     header="$1"
     searchpat="$2"
     replpat="$3"
-    if [ -z "$4" ]; then
-        filenames=$(ls $dreamGlob)
-    else
-        filenames=""
-        while [ ! -z "$4" ]; do
-            ensure "-f \"$4\"" "$usageMsg\nThe file \"$4\" does not exist."
-            filenames="$filenames $4"
-            shift
-        done
-    fi
+    shift; shift; shift
 
-    # Since the replace loop is rather expensive, first do a preliminary search
-    # so that we only run the replace loop on dreams that we know match the
-    # search hregex.
+    # Since the replace loop is rather expensive, compile a list of dreams that
+    # both match our search-expr and include the <search> hregex, and look only
+    # at those.
+    dreamfind "$@"
+    affectOnlyDreams="$args"
     dreamfind tagged "$header" "$searchpat"
+    args=$(comm -12 <(echo $affectOnlyDreams | tr ' ' '\n') \
+                    <(echo $args | tr ' ' '\n'))
 
     # If we're actually making changes, confirm that we really want to.
     if [ $doChange == 1 ]; then
@@ -883,7 +881,6 @@ NEWDREAM
     ;;
 
 "word-count"|"wc")
-    [ -z "$1" ] && die "'`basename $0` word-count' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     if [ -x "scripts/bin/drwc" ]; then
         scripts/bin/drwc -p $args
