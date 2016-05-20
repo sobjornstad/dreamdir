@@ -74,10 +74,11 @@ Select dreams matching search expression <expr> and take <action>
 (available search actions are listed under 'dr help').
 
                              SEARCH EXPRESSIONS
-A search expression is one or more of the following (multiple search
-expressions are implicitly ORed together):
+A search expression is one or more of the following. If multiple search
+expressions are given, their results will be concatenated.
   * a dream number (leading zeroes allowed but not required)
   * a shell globbing pattern for some dream numbers (leading zeroes required)
+  * a[ll]          :: select all dreams (same as a quoted '*')
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
@@ -301,6 +302,10 @@ dreamfind() {
             howMany=$2
             [ -z "$howMany" ] && howMany=1
             newargs=$(ls $dreamGlob | shuf | head -n $howMany | sort)
+            ;;
+
+        "all"|"a")
+            newargs=$dreamGlob
             ;;
 
         "tagged"|"t")
@@ -700,8 +705,7 @@ NEWDREAM
     ;;
 
 "cat"|"c")
-    usageMsg="Usage: `$basename $0` cat <search-expr>"
-    ensure "! -z \"$1\"" "$usageMsg"
+    [ -z "$1" ] && die "'`basename $0` cat' needs arguments. See 'dr help search' for help."
     if [ "$1" == "-f" ]; then
         printCommand="fold -s"
         shift
@@ -825,6 +829,7 @@ NEWDREAM
     ;;
 
 "word-count"|"wc")
+    [ -z "$1" ] && die "'`basename $0` word-count' needs arguments. See 'dr help search' for help."
     dreamfind "$@"
     if [ -x "scripts/bin/drwc" ]; then
         scripts/bin/drwc -p $args
