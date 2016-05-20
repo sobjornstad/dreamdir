@@ -16,11 +16,13 @@ Features:
 * Each dream is stored in its own plain text file.
 * Each dream file begins with a list of data fields (called *headers*), which can store things like the date, the names of people who appeared in the dream, and tags.
 * The remainder of the dream file is simply the text of your entry, and you can do anything you like with it.
-* The provided shell script `dr` makes it easy to create new dreams, view and edit existing dreams, and do complex searches. (See the “Searching Walkthrough” section for ideas of what you can do.)
-* Example scripts are provided for tasks like graphing day-to-day recall and generating indexes. A small Python library is also available for user scripts.
+* The provided shell script `dr` offers easy commands to create new dreams, view and edit existing dreams, do arbitrarily complex searches, combine tags, and more. (See the “Searching Walkthrough” section for some examples.)
+* Example user scripts are provided for tasks like graphing day-to-day recall and generating indexes. A small Python library is also available.
 * Free and open source: the Dreamdir format itself and this documentation are public domain, and all code is provided under the MIT license (see the LICENSE file for details).
 
-The `dr` shell script is still under quite active development, so if you wish to use it you should be aware that the syntax may change out from under you when you update. However, the Dreamdir format is so simple it is essentially fixed, and changing it to something else would be very easy, so you are totally safe using it as a storage format right now.
+The `dr` shell script is still under fairly active development, so if you wish to use it you should be aware that the syntax may change when you update. Also, while I’m comfortable enough with the stability of `dr` to do development with my own personal dreamdir, please back up your dreams regularly while using it.
+
+The Dreamdir format itself is so simple it is essentially fixed, and changing it to something else would be very easy, so there will be no portability problems if you begin using it right now.
 
 
 Dreamdir format
@@ -144,10 +146,10 @@ A number of scripts, largely written in Python, are provided in the `scripts/` d
 
 I don’t make any guarantees about the general applicability of these scripts. In particular, you should read through the code of any script you hope to use before using it; you may find there are still file paths or other constants only applicable to my system lurking in there somewhere.
 
-Vim files
-=========
+Vim plugin
+==========
 
-For those who use vim, my syntax highlighting file and ftplugin file are located in the `vim/` directory; you can install these to your `~/.vim` directory directly or use your favorite plugin manager.
+For those who use vim, my syntax highlighting and ftplugin files are located in the `vim/` directory; you can install these to your `~/.vim` directory directly or use your favorite plugin manager.
 
 You may want to remove the `setlocal cpoptions+=J` (`:help cpo-J`) line from `vim/ftplugin/dream.vim` if you don’t want to double-space between sentences (see the “Formatting guidelines” section above).
 
@@ -284,7 +286,7 @@ I’ve left out several useful types of search expressions; in addition to findi
 Summarizing headers
 -------------------
 
-There are two more tools that are useful if you don’t know what kind of tags and header values you have. These are more *list* tools than strictly *search* tools; they operate on the entire dreamdir rather than specific dreams.
+There are two more search functions that are useful if you don’t know what kind of tags and header values you have. These are more *list* tools than strictly *search* tools, but they can be used with search expressions as well. Often you may want to use them on all your dreams; conveniently (and not accidentally), a blank search expression is the same as selecting all dreams.
 
 What headers do we actually use in our dreamdir?
 
@@ -326,7 +328,7 @@ Header search and replace
 
 As seen in the above example, sometimes you will probably want to merge two tags together, or change the name of a tag. This can be a real pain manually and make you question the wisdom of using plain text files instead of a database. But never fear, `header-replace` comes to the rescue.
 
-First we should make sure that we have the right search expression to find the tag that’s wrong (`Regents`). The form of search expression we use with `dr find tagged` and `dr header-replace` is an *hregex*, the precise definition of which can be found in the online help (`dr help search`). For now, we just need to know that we can match the beginning and the end of a tag with `^` and `$` (the beginning- and end-of-line anchors in standard regexes). Thus:
+First we may wish to make sure that we have the right search expression to find the tag that’s wrong (`Regents`). The form of search expression we use with `dr find tagged` and `dr header-replace` is an *hregex*, the precise definition of which can be found in the online help (`dr help search`). For now, we just need to know that we can match the beginning and the end of a tag with `^` and `$` (the beginning- and end-of-line anchors in standard regexes). Thus:
 
     $ dr dump-headers tagged Places '^Regents$'
     Id:	01121
@@ -339,25 +341,24 @@ First we should make sure that we have the right search expression to find the t
 Then we actually call `header-replace` for the dreamdir:
 
     $ dr header-replace Places '^Regents$' 'Regents Hall'
-    ** Running search-and-replace on all dreams. **
-
+                        === Preview of changes to be applied ===
     01121.dre:
       -Regents
       +Regents Hall
       =Places:	Sunnyside, Regents Hall, St. Olaf
 
-    Changes will affect 1 files.
+    Changes will affect 1 file.
+    To make these changes, rerun the command with the '-f' option.
 
 Since the diff output looks like what we wanted, we then call it again with the *force*, `-f`, parameter to actually make the changes:
 
     $ dr header-replace -f Places '^Regents$' 'Regents Hall'
-    WARNING: You are about to run a regex search-and-replace on all
-    specified dreams. Please check the results without -f first!
-    Do you really want to continue (y/n)? y
-    ** Running search-and-replace on all dreams. **
+    You are about to apply a search-and-replace that will affect 3 dreams.
+    If this doesn't sound right, please check the results without -f first!
+    Do you wish to continue (y/n)?
 
     01121.dre modified
-    Changed 1 files.
+    Changed 1 file.
 
 Note the two-step process. You should definitely *not* try to skip the first step; since this is essentially just a really fancy way of using `sed` across all your dream files, a particularly badly formed regex (e.g, replace `.*` with `q`) could do very bad things to your dreams (pun intended).
 
@@ -366,4 +367,4 @@ Of course, this example is trivial, and this particular error could be fixed muc
 Support
 =======
 
-Please post bugs on the Github issue tracker and/or email me at `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention your operating system and version of bash. Improvements and pull requests are welcome as long as you release your code under the MIT license and they don’t make things unnecessarily complicated.
+Please post bugs on the Github issue tracker and/or email me at `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention your operating system and version of bash. Improvements and pull requests are welcome as long as you release your code under the MIT license and they are consistent with the project’s philosophy.
