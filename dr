@@ -219,9 +219,9 @@ ensure() {
     if [ $? -ne 0 ]
     then
         if [ -z "$3" ]; then
-            exitval=1
+            local exitval=1
         else
-            exitval=$3
+            local exitval=$3
         fi
         echo -e "$2"
         exit $exitval
@@ -263,12 +263,12 @@ popd () {
 numerize() {
     ensure "! -z \"$1\"" "Invalid arguments given to numerize()"
     ensure "! -z \"$2\"" "Invalid arguments given to numerize()"
-    num=$1
-    singular=$2
+    local num=$1
+    local singular=$2
     if [ -z "$3" ]; then
-        plural="$singular"s
+        local plural="$singular"s
     else
-        plural=$3
+        local plural=$3
     fi
 
     if [ $num -ne 1 ]; then
@@ -280,20 +280,20 @@ numerize() {
 
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
-# Parse a search-expr; called by find/edit/winnow/etc to do the dirty
-# filtering work.
+# Parse a search expression. The filenames of matching dreams are placed in
+# the variable $args.
 dreamfind() {
     # Parse optional arguments to edit.
-    doReverse=0
-    doShuf=0
-    limit=0
-    invert=0
+    df_doReverse=0    # global because a user that has to sort the results
+    df_doShuf=0       # for further processing has to reapply these filters
+    local limit=0
+    local invert=0
     while getopts rsl:v opt; do
         case $opt in
         r)
-            doReverse=1 ;;
+            df_doReverse=1 ;;
         s)
-            doShuf=1 ;;
+            df_doShuf=1 ;;
         l)
             limit="$OPTARG" ;;
         v)
@@ -304,10 +304,12 @@ dreamfind() {
 
     # Now compile a list of all the dreams we've specified.
     args=""
+    local newargs=""
+    local howMany=0
     while [ ! -z "$1" ]; do
         if [[ $1 =~ ^[0-9][0-9]*$ ]]
         then
-            let num=10#$1  # in case user uses leading zeroes
+            let local num=10#$1  # in case user uses leading zeroes
             printf -v newargs '%05d.dre' "$num"
         else case "$1" in
         "last"|"back"|"l"|"b")
@@ -337,15 +339,15 @@ dreamfind() {
             ;;
 
         "tagged"|"t")
-            usage="Usage: dr edit tagged <header regex> <value regex>"
+            local usage="Usage: dr edit tagged <header regex> <value regex>"
             ensure "! -z \"$2\"" "$usage"
             ensure "! -z \"$3\"" "$usage"
             # The idea here is to replace the delimiters with '@@@@@' (which we
             # can fairly safely assume will not show up in a tag), then change
             # the user's regex to match '@@@@@' as BOL/EOL and not cross it
             # with '.'.
-            header="$2"
-            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
+            local header="$2"
+            local pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
             newargs=$(grep -m 1 "$header:	" $dreamGlob | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
@@ -371,8 +373,8 @@ dreamfind() {
     if [ $invert -eq 1 ]; then
         args=$(comm -3 <(ls $dreamGlob | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
     fi
-    [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
-    [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
+    [ $df_doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
+    [ $df_doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
     [ $limit -ne 0 ]     && args=$(echo $args | tr ' ' '\n' | head -n $limit)
 
     # sanity check
@@ -389,12 +391,12 @@ dreamfind() {
 # statement purely because it's long and makes the script harder to read.
 validate_dreamdir() {
     # set up temp file for checking id and date headers
-    tempfile="/tmp/dreamgrep" # contains list of dream files
+    local tempfile="/tmp/dreamgrep" # contains list of dream files
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
     ls $dreamGlob | sort > "$tempfile"
 
     # check for id problems
-    checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
+    local checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
         echo "ID value check...OK"
     else
@@ -458,27 +460,27 @@ PYTH_ID_CHECK
 # Calculate and display textual statistics.
 stats_display() {
     echo "Crunching the latest numbers for you, just a moment..."
-    colOn='[1;34m'
-    colOff='[0m'
+    local colOn='[1;34m'
+    local colOff='[0m'
 
-    today=$(date '+%Y-%m-%d')
-    filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
+    local today=$(date '+%Y-%m-%d')
+    local filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
     if [ ! -z "$filenamesToday" ]; then
-        dreamsToday=$(echo $filenamesToday | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
-        numDreamsToday=$(echo $dreamsToday | wc -w)
-        dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
-        lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
-        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
+        local dreamsToday=$(echo $filenamesToday | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
+        local numDreamsToday=$(echo $dreamsToday | wc -w)
+        local dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
+        local lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
+        local wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
         if [ -f $wordCountToday ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
             wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
         fi
     fi
 
-    numDreams=$(ls $dreamGlob | wc -l)
-    wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
-    avgWordCount=$((wordCount / numDreams))
-    dateStats=$(python2 <<PYTH_DATEFREQ
+    local numDreams=$(ls $dreamGlob | wc -l)
+    local wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
+    local avgWordCount=$((wordCount / numDreams))
+    local dateStats=$(python2 <<PYTH_DATEFREQ
 # OUTPUT FORMAT:
 # <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
 import scripts.ddirparse as dp
@@ -498,7 +500,7 @@ print byFreq[-1],       # most number of dreams
 print freqs[byFreq[-1]] # how many?
 PYTH_DATEFREQ
 )
-    mostWordsDay=$(python2 <<PYTH_MOSTWORDS
+    local mostWordsDay=$(python2 <<PYTH_MOSTWORDS
 # Getting acceptable performance here requires unfolding some possible
 # functions and abstractions into this (nevertheless simple enough) loop.
 # TODO: This should be a function in scripts.ddirparse, I can think of tons of
@@ -527,28 +529,28 @@ print wcOrder[0], wcs[wcOrder[0]], # # of dreams, date of it
 print len(dp.getDreamsTagged('Date', wcOrder[0])) # how many dreams
 PYTH_MOSTWORDS
 )
-    datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
-    avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
-    avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
-    earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
-    latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
-    mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
-    numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
+    local datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
+    local avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
+    local avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
+    local earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
+    local latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
+    local mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
+    local numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
 
-    mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
-    mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
-    dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
-    mostWordsDream=$(wc -w $dreamGlob | sort -n | sed -e '$ d' | tail -n 1)
-    mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
-    mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
+    local mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
+    local mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
+    local dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
+    local mostWordsDream=$(wc -w $dreamGlob | sort -n | sed -e '$ d' | tail -n 1)
+    local mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
+    local mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
 
-    lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
-    numLucids=$(echo $lucidFilenames | wc -w) # -w: $() collapses \n to space
-    percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
-    totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
-    avgLucidWordCount=$((totalLucidWordCount / numLucids))
-    percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
-    daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
+    local lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
+    local numLucids=$(echo $lucidFilenames | wc -w) # -w: $() collapses \n to space
+    local percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
+    local totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
+    local avgLucidWordCount=$((totalLucidWordCount / numLucids))
+    local percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
+    local daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
 # Output format: <days with recorded LDs>
 import scripts.ddirparse as dp
 dp.setDreamdir("$PWD")
@@ -562,7 +564,7 @@ for i in lucids:
 print len(lucidDays)
 PYTH_DAYS_LDS
 )
-    percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
+    local percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
 
 # Consider, inserting commas into a number:
 # echo "$number" | rev | sed 's/\([0-9][0-9][0-9]\)\([0-9]\)/\1,\2/g' | rev
@@ -704,8 +706,8 @@ NEWDREAM
     dreamfind "$@"
     results=$(comm $commparams <(echo $toFilter | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
     # since comm needs sorted content, we have to reapply the order changes
-    [ $doReverse == 1 ] && results=$(echo "$results" | tac)
-    [ $doShuf == 1 ]    && results=$(echo "$results" | shuf)
+    [ $df_doReverse == 1 ] && results=$(echo "$results" | tac)
+    [ $df_doShuf == 1 ]    && results=$(echo "$results" | shuf)
     echo $results
     ;;
 
