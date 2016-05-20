@@ -18,40 +18,47 @@ dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
 Usage: `basename $0` <action> [<action arguments>]
+There are two types of actions, searches and utilities.
+
+                             SEARCHES
+Searches display some information about a subset of dreams. They take an
+implied 'search expression' after their other arguments. For information
+about search expressions, type '`basename $0` help search'.
+
+cat [-f]            :: print all content of matching dreams on stdout; if -f,
+                       pass through 'fold -s' to limit line length to 80 chars
+dump-headers        :: print headers of matching dreams
+edit                :: pass matching dreams as args to \$EDITOR
+find                :: show numbers of matching dreams
+filename-display    :: print filenames of matching dreams
+get-header <header> :: print values of header for matching dreams
+word-count          :: show word count of the specified dreams, not
+                       including headers
+winnow              :: read filenames from stdin and AND them with
+                       the results of another query
+xwinnow             :: read filenames from stdin and XOR them with
+                       the results of another query
+
+                             UTILITIES
+Utilities perform some other action on your dreamdir.
+
+help                        :: show this usage message
+header-replace              :: regex search-and-replace on headers; type
+                               '`basename $0` help header-replace' for info
+header-values [-f] <header> :: show a list of all values used for <header> in
+                               any dream (include frequency if -f)
+last-lucid                  :: edit the dream with the highest number that
+                               has a Lucid header
+list-headers [-f]           :: list headers used in at least one dream (with
+                               frequency if -f specified)
+new                         :: create a new dream with the next available ID
+                               number and open it for editing
+regenerate-graphs           :: run scripts/RegeneratePlots.sh to make graphs
+stats                       :: display dream statistics
+validate                    :: format sanity check: ensure all dreams have
+                               IDs and dates and ID numbers are contiguous
+
 An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
-
-                             ACTIONS
-help                           :: show this usage message
-new                            :: create a new dream with the next available ID
-                                  number and open it for editing
-cat [-f] <search-expr>         :: print all content of dreams matching
-                                  expression on stdout; if -f, pass through
-                                  'fold -s' to limit line length to 80 chars
-dump-headers <search-expr>     :: print headers of matching dreams
-edit <search-expr>             :: pass matching dreams as args to \$EDITOR
-find <search-expr>             :: show numbers of matching dreams
-filename-display <search-expr> :: print filenames of matching dreams
-get-header <header> <search-expr> :: print values of header for matching dreams
-word-count <search-expr>       :: show word count of the specified dreams, not
-                                  including headers
-winnow <search-expr>           :: read filenames from stdin and AND them with
-                                  the results of another query
-xwinnow <search-expr>          :: read filenames from stdin and XOR them with
-                                  the results of another query
-list-headers [-f]              :: list headers used in at least one dream (with
-                                  frequency if -f specified)
-header-values [-f] <header>    :: show a list of all values used for <header> in
-                                  any dream (include frequency if -f)
-header-replace                 :: regex search-and-replace on headers; type
-                                  '`basename $0` help header-replace' for info
-last-lucid                     :: edit the dream with the highest number that
-                                  has a Lucid header
-regenerate-graphs              :: run scripts/RegeneratePlots.sh to make graphs
-stats                          :: display dream statistics
-validate                       :: format sanity check: ensure all dreams have
-                                  IDs and dates and ID numbers are contiguous
-
-Type '`basename $0` help search' for information about <search-expr>s.
 USAGEMSG
     exit 0
 }
@@ -63,18 +70,8 @@ usagemsg_edit() {
                              DR - SEARCHING
 `basename $0` <action> [<options>] <expr>
 
-Select dreams matching search expression <expr> and take <action>:
-  c[at]            :: print their headers and content on stdout
-  d[ump-]h[eaders] :: print only their headers on stdout
-  e[dit]           :: pass their filenames as arguments to \$EDITOR
-  f[ind]           :: print their numbers
-  f[ilename-]d[isplay] :: print their filenames
-  g[et-]h[eader]   :: print their values for the specified header
-  w[ord]-c[ount]   :: print their word counts, excluding headers
-  w[innow]         :: read filenames from stdin, print filenames present in
-                      both query results and stdin (AND)
-  x[winnow]        :: read filenames from stdin, print filenames present in
-                      either query results or stdin but not both (XOR)
+Select dreams matching search expression <expr> and take <action>
+(available search actions are listed under 'dr help').
 
                              SEARCH EXPRESSIONS
 A search expression is one or more of the following (multiple search
