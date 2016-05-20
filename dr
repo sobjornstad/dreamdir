@@ -343,7 +343,7 @@ dreamfind() {
     fi
     [ $doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
     [ $doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
-    [ $limit -ne 0 ]     && args=$(echo $args | head -n $limit)
+    [ $limit -ne 0 ]     && args=$(echo $args | tr ' ' '\n' | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."

@@ -152,6 +152,8 @@ fn_check() {
     fn_test "1, 4, 5" t Places 'Sunnyside'   
     fn_test "9"       t Lucid  1              
 
+    fn_test "1, 4"    -l 2 t Places 'Sunnyside'
+
     # how about combinations of tests?
     fn_test "7, 6, 7" tagged Tags 'rel.*ship' tagged People OC
 
