@@ -2,26 +2,33 @@
 # %%% Prompt the user to add titles to dreams that don't currently have them.
 
 warnedSkip=0
-autoHeaders=1
+autoCat=0
 
-echo "Dreamdir title addition script. Type ? at the prompt for help."
+echo "Dreamdir header addition script"
+read -p "What header would you like to add to your dreams? " theheader
+
+echo -e "\nType ? at the prompt for help."
 for file in $(ls *.dre)
 do
-	if ! grep -q "Title:	" "$file"; then
+	if ! grep -q "$theheader:	" "$file"; then
 		while :
 		do
 			warnedSkip=0
 			echo -e "\e[1;31m$file\e[0m"
-			[ $autoHeaders == 1 ] && dr dump-headers $file
-			read -p "Title or [@\$#?]: " newtitle
+			if [ $autoCat == 1 ]; then 
+                dr cat $file
+            else
+                dr dump-headers $file
+            fi
+			read -p "New value for $theheader or [@\$#?]: " newtitle
 			case $newtitle in
 			"#")
-				if [ $autoHeaders == 1 ]; then
-					autoHeaders=0
-					echo "Automatic header display turned off."
+				if [ $autoCat == 1 ]; then
+					autoCat=0
+					echo "Only headers will be displayed automatically."
 				else
-					autoHeaders=1
-					echo "Automatic header display turned on."
+					autoCat=1
+					echo "Entire dream will be displayed automatically."
 				fi
 				;;
 			"@")
@@ -33,7 +40,7 @@ do
 			"?")
 				cat <<-END_MSG
 				[1;34mHELP:[0m
-				[1;34m#:[0m Turn on/off automatic header display
+				[1;34m#:[0m Toggle automatic display of entire dream or just headers
 				[1;34m@:[0m Print dream
 				[1;34m$:[0m Open dream in editor
 				[1;34m?:[0m Show this help screen
@@ -42,10 +49,10 @@ do
 				END_MSG
 				;;
 			*)
-				ed "$file" <<-EOF
+				ed "$file" >/dev/null 2>&1 <<-EOF
 				/Date:	
 				a
-				Title:	$newtitle
+				$theheader:	$newtitle
 				.
 				wq
 				
