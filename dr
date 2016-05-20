@@ -171,21 +171,19 @@ not match anything.
 Each comma-separated value is considered a separate line, so we can search for
 '^foobar$' to match only the entire tag 'foobar' and not, say, 'foobarbaz'.
 
-<find> and <replace> should not contain pipe characters (|).
-
                              PREVIEWING
 Without the -f option, dr produces a preview of the changes your search-and-
 replace will make.  Typical output looks like this:
 
     $ dr header-replace Tags "foo" "quux"
-    ** Running search-and-replace on all dreams. **
-
+                    === Preview of changes to be applied ===
     01223.dre:
       -foo
       +quux
       =Tags:	quux, bar, baz
 
     Changes will affect 1 file.
+    To make these changes, rerun the command with the '-f' option.
 
 One section will be produced for each dream affected.  The first lines
 underneath are a diff between the two sets of values.  The last line shows the
@@ -754,9 +752,8 @@ NEWDREAM
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     ensure "! -z \"$3\"" "$usageMsg"
-    #TODO: This should escape them rather than disallowing them -- a pipe
-    # might be a nice thing to have in a regex.
-    [[ "$2" =~ "|" || "$3" =~ "|" ]] && die "Pipes (|) are not valid in search/replace regexes!\n$usageMsg"
+    [[ "$2" =~ "@" || "$3" =~ "@" ]] && \
+        die "Sorry, at-signs (@) are not valid in search/replace regexes."
 
     if [ "$1" == "-f" ]; then
         doChange=1
@@ -809,7 +806,7 @@ NEWDREAM
     do
         headerline=$(grep -m 1 "$header:	" "$filename")
         oldtags=$(echo "$headerline" | sed -e "s/$header:	//" | sed -e 's/, /\n/g')
-        newtags=$(echo "$oldtags" | sed -re "s|$searchpat|$replpat|g")
+        newtags=$(echo "$oldtags" | sed -re "s@$searchpat@$replpat@g")
         diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' | sed -e 's/^/  /')
 
         if [ -z "$diffs" ]; then
@@ -818,7 +815,7 @@ NEWDREAM
 
         replwith="$header:	$(echo "$newtags" | tr '\n' ',' | sed -e 's/,/, /g' | sed -e 's/, $//')"
         if [ $doReplace == 1 ]; then
-            sed -e "s|$headerline|$replwith|" "$filename" > repl.tmp
+            sed -e "s@$headerline@$replwith@" "$filename" > repl.tmp
             rm "$filename"
             mv repl.tmp "$filename"
             echo "$filename modified"
