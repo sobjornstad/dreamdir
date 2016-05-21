@@ -46,18 +46,18 @@ xwinnow             :: read filenames from stdin and XOR them with
                              UTILITIES
 Utilities perform some other action.
 
-help                        :: show this usage message
-header-replace              :: regex search-and-replace on headers; type
-                               '`basename $0` help header-replace' for info
-last-lucid                  :: edit the dream with the highest number that
-                               has a Lucid header
-new                         :: create a new dream with the next available ID
-                               number and open it for editing
-regenerate-graphs           :: run scripts/RegeneratePlots.sh to make graphs
-stats                       :: display dream statistics
-validate                    :: format sanity check: ensure all dreams have
-                               IDs and dates and ID numbers are contiguous
-version                     :: print version number of this 'dr'
+help                :: show this usage message
+header-replace      :: regex search-and-replace on headers; type
+                       '`basename $0` help header-replace' for info
+last-lucid          :: edit the dream with the highest number that
+                       has a Lucid header
+new                 :: create a new dream with the next available ID
+                       number and open it for editing
+regenerate-graphs   :: run scripts/RegeneratePlots.sh to make graphs
+stats               :: display dream statistics
+validate            :: format sanity check: ensure all dreams have
+                       IDs and dates and ID numbers are contiguous
+version             :: print version number of this 'dr'
 
 An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
 USAGEMSG
