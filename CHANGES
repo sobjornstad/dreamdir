@@ -1,3 +1,33 @@
+Changes in 1.0.3
+----------------
+
+This release improves and normalizes a number of search functions. Despite all
+the changes, I think the new syntax in this version is entirely
+backwards-compatible with 1.0.2.
+
+Bugfixes:
+
+* Fix limit option to search expressions not working at all.
+* Don't display '1 dreams' anywhere.
+
+New features:
+
+* Improve 'titleadd.sh' script, rename to 'headeradd.sh' to reflect widening
+  function.
+* Add empty search expressions and search expression 'all' to match all dreams.
+* Adjustments to online help formatting and content.
+* Greatly improve runtime of header-replace, and make it take any search
+  expression rather than just a list of filenames to apply the changes over.
+* Change separator used for 'sed' in header-replace so that you can use pipes in
+  your search regex.
+* list-headers and header-values now accept search expressions to limit their
+  application to a subset of dreams.
+
+Under-the-hood improvements:
+
+* Change a bunch of variables used in functions to local ones.
+
+
 Changes in 1.0.2
 ----------------
 
@@ -48,3 +78,5 @@ New features:
 * Add a new script to help with adding titles to dreams that don't have them.
 * Implement word count feature in C, and add a front-end in `dr`.
 * Write some tests for the `dr` script; more to come.
+
+# vim:tw=80:
