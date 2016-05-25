@@ -76,6 +76,18 @@ def getAttribForAllDreams(attrib):
 
     return dreams
 
+def getAllHeaders():
+    dreams = {}
+    for f in allDreamfiles():
+        dream = {}
+        for line in f:
+            if not line.strip(): # end of headers
+                break
+            header, value = (i.strip() for i in line.split(':\t'))
+            dream[header] = value
+        dreams[dream['Id']] = dream
+    return dreams
+
 def getDreamsTagged(attrib, tag):
     """
     Find all dreams that are tagged with 'tag' as one of the 'attrib'
