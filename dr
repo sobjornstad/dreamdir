@@ -22,8 +22,9 @@ There are two types of actions, searches and utilities.
 
                              SEARCHES
 Searches display some information about a subset of dreams. They take an
-implied 'search expression' after their other arguments. For information
-about search expressions, type '`basename $0` help search'.
+implied search expression after their other arguments; an empty search
+expression selects all dreams. For information about search expressions, type
+'`basename $0` help search'.
 
 cat [-f]            :: print all content of matching dreams on stdout; if -f,
                        pass through 'fold -s' to limit line length to 80 chars
@@ -78,7 +79,8 @@ Select dreams matching search expression <expr> and take <action>
 A search expression is one or more of the following. If multiple search
 expressions are given, their results will be concatenated.
   * a dream number (leading zeroes allowed but not required)
-  * a shell globbing pattern for some dream numbers (leading zeroes required)
+  * a range of numbers (e.g., 12-18; leading zeroes allowed but not required)
+  * a Bash globbing pattern for some dream numbers (leading zeroes required)
   * a[ll]          :: select all dreams (same as a quoted '*')
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
@@ -284,6 +286,27 @@ numerize() {
     fi
 }
 
+# getrange()
+# Given a range of dreams in the form Range ::= Number{+}-Number{+}, print
+# a string of the filenames of dreams in that range (inclusive).
+#
+# Called in several places in dreamfind().
+#
+# Argument:
+# $1 - the range to find
+#
+# Example:
+# $ echo "Filename list: $(getrange 4-8)"
+# 00004.dre 00005.dre 00006.dre 00007.dre 00008.dre
+getrange() {
+    ensure "! -z \"$1\"" "Invalid arguments given to getrange()"
+    local startat=$(echo "$1" | cut -d '-' -f 1)
+    local endat=$(echo "$1" | cut -d '-' -f 2)
+    ensure "! -z \"$startat\"" "No results."
+    ensure "! -z \"$endat\"" "No results."
+    seq -f '%05g.dre' $startat $endat
+}
+
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
 # Parse a search expression. The filenames of matching dreams are placed in
@@ -321,10 +344,11 @@ dreamfind() {
     local newargs=""
     local howMany=0
     while [ ! -z "$1" ]; do
-        if [[ $1 =~ ^[0-9][0-9]*$ ]]
-        then
+        if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
             let local num=10#$1  # in case user uses leading zeroes
             printf -v newargs '%05d.dre' "$num"
+        elif [[ $1 =~ ^[0-9][0-9]*-[0-9][0-9]*$ ]]; then
+            newargs=$(getrange $1)
         else case "$1" in
         "last"|"back"|"l"|"b")
             howMany="$2"
