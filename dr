@@ -286,6 +286,35 @@ numerize() {
     fi
 }
 
+# colorify()
+# Given a string, print the string with "syntax highlighting" for dreamdir
+# syntax.
+#
+# Argument:
+# $1 - the string to color
+
+COL_HEADERS=$(tput setaf 2)
+COL_LUCID=$(tput setaf 4)
+COL_NOTES=$(tput setaf 6)
+COL_VERBATIM=$(tput setaf 1)
+COL_CLEAR=$(tput sgr0)
+
+colorify() {
+    # escape quotes and newlines so we can plop this into a Python string
+	local txt=$(echo "$1" | sed -e 's/"/\\"/g' | perl -pe 's/\n/\\n/g')
+	python2 <<-END
+    # -*- coding: utf-8 -*-
+	from scripts.ddirparse import strHighlight
+	colors = {'headers': '$COL_HEADERS', 'lucid': '$COL_LUCID',
+	          'notes': '$COL_NOTES', 'verbatim': '$COL_VERBATIM',
+	          'clear': '$COL_CLEAR'}
+	# we use rstrip to remove the trailing newline since that's what Bash would
+	# do if we just printed it outright
+	print strHighlight("$txt", colors).rstrip()
+	END
+}
+
+
 # getrange()
 # Given a range of dreams in the form Range ::= Number{+}-Number{+}, print
 # a string of the filenames of dreams in that range (inclusive).
@@ -762,7 +791,13 @@ NEWDREAM
     dreamfind "$@"
     for i in $args; do
         [ ! -f "$i" ] && echo "File $i not found."
-        awk '{ if(!$0) exit; print $0; }' < "$i"
+        text=$(awk '{ if(!$0) exit; print $0; }' < "$i")
+        if [ -t 1 ]; then
+            # running in an interactive terminal
+            colorify "$text"
+        else
+            echo "$text"
+        fi
         echo ""
     done
     ;;
@@ -777,7 +812,13 @@ NEWDREAM
 
     dreamfind "$@"
     for i in $args; do
-        $printCommand "$i"
+        text=$($printCommand "$i")
+        if [ -t 1 ]; then
+            # running in an interactive terminal
+            colorify "$text"
+        else
+            echo "$text"
+        fi
         echo -en "\n\n"
     done
     ;;

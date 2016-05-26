@@ -25,6 +25,52 @@ def setDreamdir(path):
 
 
 ### General tools ####
+def strHighlight(s, colors):
+    """
+    Interpolate the terminal coloring codes specified in colorDict into the
+    string 's' based on dreamdir syntax rules.
+
+    The string should contain headers, and may also contain dream text.
+
+    colorDict should specify color codes as the values for keys 'headers',
+    'lucid', 'notes', and 'verbatim', and the clear code for the key 'clear'.
+    These can be obtained with, e.g., tput(1).
+    """
+    out = []
+    charColors = {'{': 'lucid', '[': 'notes', '\`': 'verbatim'}
+    try:
+        headers, rest = s.split('\n\n', 1)
+    except ValueError:
+        # nothing provided beyond the headers, or input is malformed
+        headers = s
+        rest = ''
+
+    for i in headers.split('\n'):
+        out.append(re.sub(r'^(.*):\t(.*)$',
+                        r'%s\1:\t%s\2' % (colors['headers'], colors['clear']),
+                        i))
+        out.append('\n')
+    out.append('\n')
+
+    colStack = []
+    curColor = colors['clear']
+    inBacktick = False
+    for char in rest:
+        if char in ('[', '{') or (char == '\`' and not inBacktick):
+            colStack.append(curColor)
+            curColor = colors[charColors[char]]
+            out.append(curColor)
+            out.append(char)
+        elif char in (']', '}') or (char == '\`' and inBacktick):
+            out.append(char)
+            curColor = colStack.pop()
+            out.append(curColor)
+        else:
+            out.append(char)
+        if char == '\`':
+            inBacktick = not inBacktick
+    return ''.join(out)
+
 def allDreamfiles():
     """
     Generator function for iterating over all dreamfiles in the directory.
