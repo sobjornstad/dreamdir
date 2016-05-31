@@ -2,12 +2,23 @@
 # %%% dr - Dreamdir utility program
 # Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
+##### SHELLCHECK DIRECTIVES #####
+# Turn off checks for variable quoting.
+# shellcheck disable=2086
+#   It's really too bad this has to be turned off, because it catches places
+#   where variables really should have been quoted but were not. Unfortunately,
+#   it flags passing around command-line arguments and lists of files like
+#   "grep 'pattern' $dreamGlob" as errors, and as such produces a heap of
+#   irrelevant warnings in this script.
+
+
 ##### CONSTANTS #####
 # application version
 MYVERSION="1.0.3"
 
 # matching pattern for dream files
 dreamGlob='[0-9][0-9][0-9][0-9][0-9].dre'
+
 
 ##### DOCUMENTATION / HELP MESSAGES #####
 # usagemsg()
@@ -211,6 +222,7 @@ does occur you will find the content in the file 'repl.tmp' in your dreamdir.)
 USAGEMSG
 }
 
+
 ##### UTILITY FUNCTIONS #####
 # ensure()
 # Make sure a condition necessary for script execution is true.
@@ -232,7 +244,7 @@ ensure() {
             local exitval=$3
         fi
         echo -e "$2"
-        exit $exitval
+        exit "$exitval"
     else
         return 0
     fi
@@ -248,10 +260,13 @@ die() {
     exit 1
 }
 
-# don't display the directory stack on push/pop
+# Don't display the directory stack on push/pop.
+# shellcheck disable=2120
+# :: no arguments ever used - we could want them later
 pushd () {
     command pushd "$@" > /dev/null
 }
+# shellcheck disable=2120
 popd () {
     command popd "$@" > /dev/null
 }
@@ -279,7 +294,7 @@ numerize() {
         local plural=$3
     fi
 
-    if [ $num -ne 1 ]; then
+    if [ "$num" -ne 1 ]; then
         echo "$plural"
     else
         echo "$singular"
@@ -314,7 +329,6 @@ colorify() {
 	END
 }
 
-
 # getrange()
 # Given a range of dreams in the form Range ::= Number{+}-Number{+}, print
 # a string of the filenames of dreams in that range (inclusive).
@@ -333,8 +347,9 @@ getrange() {
     local endat=$(echo "$1" | cut -d '-' -f 2)
     ensure "! -z \"$startat\"" "No results."
     ensure "! -z \"$endat\"" "No results."
-    seq -f '%05g.dre' $startat $endat
+    seq -f '%05g.dre' "$startat" "$endat"
 }
+
 
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
@@ -377,12 +392,12 @@ dreamfind() {
             let local num=10#$1  # in case user uses leading zeroes
             printf -v newargs '%05d.dre' "$num"
         elif [[ $1 =~ ^[0-9][0-9]*-[0-9][0-9]*$ ]]; then
-            newargs=$(getrange $1)
+            newargs=$(getrange "$1")
         else case "$1" in
         "last"|"back"|"l"|"b")
             howMany="$2"
             [ -z "$2" ] && howMany=1
-            newargs=$(ls $dreamGlob | tail -n $howMany)
+            newargs=$(find $dreamGlob | tail -n "$howMany")
             if [[ "$1" == "back" || "$1" == "b" ]]; then
                 newargs=$(echo "$newargs" | head -n 1)
             fi
@@ -398,7 +413,7 @@ dreamfind() {
         "random"|"r")
             howMany=$2
             [ -z "$howMany" ] && howMany=1
-            newargs=$(ls $dreamGlob | shuf | head -n $howMany | sort)
+            newargs=$(find $dreamGlob | shuf | head -n "$howMany" | sort)
             ;;
 
         "all"|"a")
@@ -436,13 +451,15 @@ dreamfind() {
     done
 
     # apply option flags
-    args=$(echo $args | cat -) # looks like a no-op, but it expands globs
+    # shellcheck disable=2086
+    # :: We *don't* want $args to be quoted -- we're doing this to expand globs.
+    args=$(echo $args | cat -)
     if [ $invert -eq 1 ]; then
-        args=$(comm -3 <(ls $dreamGlob | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
+        args=$(comm -3 <(find $dreamGlob | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
     fi
-    [ $df_doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
-    [ $df_doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
-    [ $limit -ne 0 ]        && args=$(echo $args | tr ' ' '\n' | head -n $limit)
+    [ $df_doReverse -eq 1 ] && args=$(echo "$args" | tr ' ' '\n' | tac)
+    [ $df_doShuf -eq 1 ]    && args=$(echo "$args" | tr ' ' '\n' | shuf)
+    [ $limit -ne 0 ]        && args=$(echo "$args" | tr ' ' '\n' | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."
@@ -460,7 +477,7 @@ validate_dreamdir() {
     # set up temp file for checking id and date headers
     local tempfile="/tmp/dreamgrep" # contains list of dream files
     ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
-    ls $dreamGlob | sort > "$tempfile"
+    find $dreamGlob | sort > "$tempfile"
 
     # check for id problems
     local checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
@@ -533,18 +550,18 @@ stats_display() {
     local today=$(date '+%Y-%m-%d')
     local filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
     if [ ! -z "$filenamesToday" ]; then
-        local dreamsToday=$(echo $filenamesToday | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
-        local numDreamsToday=$(echo $dreamsToday | wc -w)
-        local dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
-        local lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
-        local wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
-        if [ -f $wordCountToday ]; then
+        local dreamsToday=$(echo "$filenamesToday" | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
+        local numDreamsToday=$(echo "$dreamsToday" | wc -w)
+        local dreamsTodayDisp=$(echo "$dreamsToday" | sed -e 's/ /, /g')
+        local lucidsToday=$(grep 'Lucid:	' "$filenamesToday" | wc -l)
+        local wordCountToday=$(wc -w "$filenamesToday" | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
+        if [ -f "$wordCountToday" ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
-            wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
+            wordCountToday=$(wc -w "$filenamesToday" | cut -d ' ' -f 1)
         fi
     fi
 
-    local numDreams=$(ls $dreamGlob | wc -l)
+    local numDreams=$(find $dreamGlob | wc -l)
     local wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
     local avgWordCount=$((wordCount / numDreams))
     local dateStats=$(python2 <<PYTH_DATEFREQ
@@ -707,7 +724,7 @@ case "$action" in
     oldUmask=$(umask)
     umask 0177 # dreams default to 600 for basic privacy
     today=$(date '+%Y-%m-%d')
-    lastNum=$(ls $dreamGlob | sort | tail -n 1 | cut -c 1-5)
+    lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
     ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
@@ -739,7 +756,7 @@ NEWDREAM
         rm "$newNum.dre"
     fi
     rm "/tmp/$newNum.dre"
-    umask $oldUmask
+    umask "$oldUmask"
     ;;
 
 "edit"|"e")
@@ -756,7 +773,7 @@ NEWDREAM
 
 "filename-display"|"fd")
     dreamfind "$@"
-    echo $args
+    echo "$args"
     ;;
 
 "winnow"|"w"|"xwinnow"|"x")
@@ -768,11 +785,11 @@ NEWDREAM
 
     read toFilter
     dreamfind "$@"
-    results=$(comm $commparams <(echo $toFilter | tr ' ' '\n' | sort) <(echo $args | tr ' ' '\n' | sort))
+    results=$(comm $commparams <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
     # since comm needs sorted content, we have to reapply the order changes
     [ $df_doReverse == 1 ] && results=$(echo "$results" | tac)
     [ $df_doShuf == 1 ]    && results=$(echo "$results" | shuf)
-    echo $results
+    echo "$results"
     ;;
 
 "get-header"|"gh")
@@ -886,15 +903,15 @@ NEWDREAM
     dreamfind "$@"
     affectOnlyDreams="$args"
     dreamfind tagged "$header" "$searchpat"
-    args=$(comm -12 <(echo $affectOnlyDreams | tr ' ' '\n') \
-                    <(echo $args | tr ' ' '\n'))
+    args=$(comm -12 <(echo "$affectOnlyDreams" | tr ' ' '\n') \
+                    <(echo "$args" | tr ' ' '\n'))
 
     # If we're actually making changes, confirm that we really want to.
     if [ $doChange == 1 ]; then
         numToChange=$(echo "$args" | wc -w)
         echo "You are about to apply a search-and-replace that will affect" \
-        "$numToChange $(numerize $numToChange dream)."
-        if [ $numToChange -ge 50 ]; then
+        "$numToChange $(numerize "$numToChange" dream)."
+        if [ "$numToChange" -ge 50 ]; then
             echo -e "\e[1;31mThat looks like quite a few dreams.\e[0m"
         fi
         echo "If this doesn't sound right, please check the results without -f first!"
