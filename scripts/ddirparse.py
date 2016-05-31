@@ -47,8 +47,8 @@ def strHighlight(s, colors):
 
     for i in headers.split('\n'):
         out.append(re.sub(r'^(.*):\t(.*)$',
-                        r'%s\1:\t%s\2' % (colors['headers'], colors['clear']),
-                        i))
+                          r'%s\1:\t%s\2' % (colors['headers'], colors['clear']),
+                          i))
         out.append('\n')
     out.append('\n')
 

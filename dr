@@ -442,7 +442,7 @@ dreamfind() {
     fi
     [ $df_doReverse -eq 1 ] && args=$(echo $args | tr ' ' '\n' | tac)
     [ $df_doShuf -eq 1 ]    && args=$(echo $args | tr ' ' '\n' | shuf)
-    [ $limit -ne 0 ]     && args=$(echo $args | tr ' ' '\n' | head -n $limit)
+    [ $limit -ne 0 ]        && args=$(echo $args | tr ' ' '\n' | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."
@@ -958,8 +958,7 @@ WC_END
     ;;
 
 "stats"|"s")
-    stats_display
-    ;;
+    stats_display ;;
 
 "regenerate-graphs"|"rg")
     scripts/RegeneratePlots.sh ;;
