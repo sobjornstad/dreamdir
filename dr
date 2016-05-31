@@ -17,14 +17,14 @@ usagemsg() {
 dr - Dreamdir utility program
 Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
-Usage: `basename $0` <action> [<action arguments>]
+Usage: $(basename "$0") <action> [<action arguments>]
 There are two types of actions, searches and utilities.
 
                              SEARCHES
 Searches display some information about a subset of dreams. They take an
 implied search expression after their other arguments; an empty search
 expression selects all dreams. For information about search expressions, type
-'`basename $0` help search'.
+'$(basename "$0") help search'.
 
 cat [-f]            :: print all content of matching dreams on stdout; if -f,
                        pass through 'fold -s' to limit line length to 80 chars
@@ -49,7 +49,7 @@ Utilities perform some other action.
 
 help                :: show this usage message
 header-replace      :: regex search-and-replace on headers; type
-                       '`basename $0` help header-replace' for info
+                       '$(basename "$0") help header-replace' for info
 last-lucid          :: edit the dream with the highest number that
                        has a Lucid header
 new                 :: create a new dream with the next available ID
@@ -70,7 +70,7 @@ USAGEMSG
 usagemsg_edit() {
     cat <<USAGEMSG
                              DR - SEARCHING
-`basename $0` <action> [<options>] <expr>
+$(basename "$0") <action> [<options>] <expr>
 
 Select dreams matching search expression <expr> and take <action>
 (available search actions are listed under 'dr help').
@@ -165,7 +165,7 @@ USAGEMSG
 usagemsg_header_replace() {
     cat <<USAGEMSG
                              DR - HEADER-REPLACE
-`basename $0` header-replace [-f] <header> <find> <replace> <search-expr>
+$(basename "$0") header-replace [-f] <header> <find> <replace> <search-expr>
 
 In dreams matching <search-expr>, replace instances of <find> in header
 <header> with <replace>.  <header> and <replace> are EREs; <find> is
@@ -778,7 +778,7 @@ NEWDREAM
 "get-header"|"gh")
     #TODO: Possibility of formatting options (filename or number, remove
     #leading 0's, include header name)
-    usageMsg="Usage: `basename $0` get-header <header> <search-expr>"
+    usageMsg="Usage: $(basename "$0") get-header <header> <search-expr>"
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     getHeader=$1
@@ -847,7 +847,7 @@ NEWDREAM
         showfreq=0
     fi
     ensure "! -z \"$1\"" \
-        "Please specify a header type, like '`basename $0` header-values Tags'."
+        "Please specify a header type, like '$(basename "$0") header-values Tags'."
     header="$1"
     shift
     dreamfind "$@"
@@ -861,7 +861,7 @@ NEWDREAM
     ;;
 
 "header-replace"|"hr")
-    usageMsg="Usage: `basename $0` header-replace [-f] <header> <search> <replace> <search-expr>\nType 'dr help header-replace' for details."
+    usageMsg="Usage: $(basename "$0") header-replace [-f] <header> <search> <replace> <search-expr>\nType 'dr help header-replace' for details."
     ensure "! -z \"$1\"" "$usageMsg"
     ensure "! -z \"$2\"" "$usageMsg"
     ensure "! -z \"$3\"" "$usageMsg"

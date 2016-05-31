@@ -30,7 +30,7 @@ AWKSCRIPT
 helptest() {
     run $1
     local awkcode=$(echo "$MESSAGE_EXTRACTOR_AWK" | sed -e "s/FN_NAME/$2/")
-    local result=$(awk "$awkcode" < dr | sed -e 's/`basename $0`/dr/' | sed -e 's/\\\\/\\/g' | sed -e 's/\\\$/$/g')
+    local result=$(awk "$awkcode" < dr | sed -e 's/$(basename "$0")/dr/' | sed -e 's/\\\\/\\/g' | sed -e 's/\\\$/$/g')
     diff <(echo "$result") <(echo "$output")
     [ "$status" == 0 ]
     [ "$output" == "$result" ]
