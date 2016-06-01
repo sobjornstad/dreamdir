@@ -27,6 +27,7 @@ BEGIN {
 }
 AWKSCRIPT
 )
+
 helptest() {
     run $1
     local awkcode=$(echo "$MESSAGE_EXTRACTOR_AWK" | sed -e "s/FN_NAME/$2/")
@@ -35,7 +36,8 @@ helptest() {
     [ "$status" == 0 ]
     [ "$output" == "$result" ]
 }
-@test "dr - help messages" {
+
+@test "dr help - help & usage messages" {
     # The helptest function extracts the actual help text from the script, so
     # it should not go out of date unless the format of the heredocs changes.
     helptest "dr" "usagemsg"
@@ -106,12 +108,14 @@ helptest() {
     [ "$output" == "$expected" ]
 }
 
+
 fn_test() {
     local desiredResult="$1"
     shift
     run dr find "$@"
     fn_check "$desiredResult" "$output"
 }
+
 fn_check() {
     local desiredResult="$1"
     local output="$2"
@@ -129,42 +133,11 @@ fn_check() {
         false
     fi
 }
-@test "dr find tagged - extensive find testing" {
-    # hregexes should match / not match on dream #8 as noted in the help page
-    fn_test "8"     t Tags 'foo'
-    fn_test "8"     t Tags 'bar'
-    fn_test "8"     t Tags 'baz'
-    fn_test "8"     t Tags 'az'
-    fn_test "8"     t Tags '.*baz'
-    fn_test "8"     t Tags '^ba.*az'
-    fn_test "8"     t Tags '^foobar$'
-    fn_test NOMATCH t Tags '^baz$'
-    fn_test NOMATCH t Tags 'o, ba'
-    fn_test NOMATCH t Tags 'foo.*baz'
 
-    # some additional hregex tests
-    fn_test "4, 7"    t Tags   'sex'         
-    fn_test "7"       t Tags   'sexy'        
-    fn_test "4"       t Tags   '^sex$'       
-    fn_test "4"       t Tags   '\bsex\b'     
-    fn_test "1"       t People 'Einstein'    
-    fn_test "1"       t People 'Alb.*stein'
-    fn_test "1, 4, 5" t Places 'Sunnyside'   
-    fn_test "9"       t Lucid  1              
-
-    fn_test "1, 4"    -l 2 t Places 'Sunnyside'
-
-    # how about combinations of tests?
-    fn_test "7, 6, 7" tagged Tags 'rel.*ship' tagged People OC
-
-    # winnow / piping
-    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC))
-    fn_check "7" "$result"
-    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr xwinnow tagged People OC))
-    fn_check "6" "$result"
-}
-
-@test "dr find glob - test of shell globbing patterns & ranges with find" {
+@test "dr find numeric - test of shell globbing patterns & ranges" {
+    # the simplest kind
+    fn_test "5" 5
+    fn_test "1, 2, 3" 1 2 3
     # normal
     fn_test "1, 2, 3, 4, 5" '0000[12345]'
     fn_test "1, 2, 3, 4, 5" '0000[1-5]'
@@ -197,4 +170,68 @@ fn_check() {
 	(Type 'dr help search' for help.)
 	EXPECTED)
     [ "$result" == "$expected" ]
+}
+
+
+@test "dr find tagged - test of hregexes" {
+    # hregexes should match / not match on dream #8 as noted in the help page
+    fn_test "8"     t Tags 'foo'
+    fn_test "8"     t Tags 'bar'
+    fn_test "8"     t Tags 'baz'
+    fn_test "8"     t Tags 'az'
+    fn_test "8"     t Tags '.*baz'
+    fn_test "8"     t Tags '^ba.*az'
+    fn_test "8"     t Tags '^foobar$'
+    fn_test NOMATCH t Tags '^baz$'
+    fn_test NOMATCH t Tags 'o, ba'
+    fn_test NOMATCH t Tags 'foo.*baz'
+
+    # some additional hregex tests
+    fn_test "4, 7"    t Tags   'sex'         
+    fn_test "7"       t Tags   'sexy'        
+    fn_test "4"       t Tags   '^sex$'       
+    fn_test "4"       t Tags   '\bsex\b'     
+    fn_test "1"       t People 'Einstein'    
+    fn_test "1"       t People 'Alb.*stein'
+    fn_test "1, 4, 5" t Places 'Sunnyside'   
+    fn_test "9"       t Lucid  1              
+
+    fn_test "1, 4"    -l 2 t Places 'Sunnyside'
+
+    # how about combinations of tests?
+    fn_test "7, 6, 7" tagged Tags 'rel.*ship' tagged People OC
+}
+
+@test "dr find winnow - test of winnow with tagged" {
+    # winnow / piping
+    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC))
+    fn_check "7" "$result"
+    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr xwinnow tagged People OC))
+    fn_check "6" "$result"
+}
+
+@test "dr find misc - test of other search expressions" {
+    fn_test "9" grep "extra lucid text"
+    fn_test "6" back 4
+    fn_test "6, 7, 8, 9" last 4
+    fn_test "1, 2, 3, 4, 5, 6, 7, 8, 9" all
+    fn_test "1, 2, 3, 4, 5, 6, 7, 8, 9" ""
+    # this leaves 'random': there's no good way to test that!
+
+    # short forms of the above
+    fn_test "9" g "extra lucid text"
+    fn_test "6" b 4
+    fn_test "6, 7, 8, 9" l 4
+    fn_test "1, 2, 3, 4, 5, 6, 7, 8, 9" a
+
+    # combining optional-arg versions of these with other text (commit 2f648401)
+    fn_test "9, 6" back 1 tagged People MN
+    fn_test "9, 6" back tagged People MN
+}
+
+@test "dr find options - test of -vrsl options to search expressions" {
+    fn_test "6, 9" -r back 1 tagged People MN
+    fn_test "2, 3" -v 1 4-
+    fn_test "1, 2, 3" -l 3 all
+    # again, no good way to test -s (randomize order)
 }

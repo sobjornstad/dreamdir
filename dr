@@ -423,7 +423,9 @@ dreamfind() {
         s)
             df_doShuf=1 ;;
         l)
-            limit="$OPTARG" ;;
+            limit="$OPTARG"
+            [[ $limit =~ ^[0-9]+$ ]] || die "'$limit' is not a valid number of dreams to limit your search to."
+            ;;
         v)
             invert=1 ;;
         esac
