@@ -10,6 +10,7 @@ setup() {
 }
 
 
+##### UTILITIES #####
 MESSAGE_EXTRACTOR_AWK=$(cat <<AWKSCRIPT
 BEGIN {
     doPrint = 0;
@@ -65,50 +66,18 @@ helptest() {
 	[ "$output" == "$expected" ]
 }
 
-@test "dr cat - print dream on stdout" {
-    run dr cat 4
-    expected=$(echo -e "$(cat 00004.dre)\n\n")
-    [ "$status" == 0 ]
-    [ "$output" == "$expected" ]
+# Still to test: header-replace, last-lucid, regenerate-graphs, stats, validate, version
 
-    run dr cat 0000[48]
-    # 3x '\n': bash seems to automatically strip one of them
-    expected=$(echo -e "$(cat 00004.dre)\n\n\n$(cat 00008.dre)\n\n")
-    [ "$status" == 0 ]
-    [ "$output" == "$expected" ]
-}
+##### SEARCHES #####
+# First we test all search expressions using 'find'. Then, having confirmed
+# that search expressions work properly, we try the other actions.
 
-@test "dr dump-headers - print dream headers on stdout" {
-    run dr dump-headers 0000[48]
-	expected=$(cat <<-EXPECTED
-	Id:	00004
-	Date:	2011-05-06
-	People:	Q
-	Places:	Sunnyside
-	Tags:	sex
-	
-	Id:	00008
-	Date:	2011-05-08
-	People:	M
-	Tags:	foo, bar baz, foobar
-	
-	EXPECTED)
-    [ "$status" == 0 ]
-    [ "$output" == "$expected" ]
-}
-
-@test "dr edit - edit existing dream file" {
-    # try making a small change with 'ed'
-    cp 00005.dre save.dre
-    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr edit 5
-    run diff 00005.dre save.dre 
-    mv save.dre 00005.dre
-    expected=$(echo -e "4d3\n< pq")
-    [ "$status" == 1 ]
-    [ "$output" == "$expected" ]
-}
-
-
+# Utility function to easily check the result of a search expression, and
+# display useful debugging information if it fails.
+#
+# Arguments:
+# $1 - a comma-and-space-separated list of dreams you expect the expr to match
+# (variable) - the search expression to test
 fn_test() {
     local desiredResult="$1"
     shift
@@ -125,7 +94,7 @@ fn_check() {
     else local match="$numMatches matches: [$desiredResult]" 
     fi
 
-    # Replace backspaced characters in output with nothing, test, and
+    # Replace any backspaced characters in output with nothing, test, and
     # print debug information if failure.
     if [ "$(echo $output | sed -e 's/.//')" != "$match" ]; then
         echo -e "Output:\t$output"
@@ -234,4 +203,124 @@ fn_check() {
     fn_test "2, 3" -v 1 4-
     fn_test "1, 2, 3" -l 3 all
     # again, no good way to test -s (randomize order)
+}
+
+@test "dr cat - print specified dreams on stdout" {
+    run dr cat 4
+    expected=$(echo -e "$(cat 00004.dre)\n\n")
+    [ "$status" == 0 ]
+    [ "$output" == "$expected" ]
+
+    run dr cat 0000[48]
+    # 3x '\n': bash seems to automatically strip one of them
+    expected=$(echo -e "$(cat 00004.dre)\n\n\n$(cat 00008.dre)\n\n")
+    [ "$status" == 0 ]
+    [ "$output" == "$expected" ]
+}
+
+@test "dr dump-headers - print specified dream headers on stdout" {
+    run dr dump-headers 0000[48]
+	expected=$(cat <<-EXPECTED
+	Id:	00004
+	Date:	2011-05-06
+	People:	Q
+	Places:	Sunnyside
+	Tags:	sex
+	
+	Id:	00008
+	Date:	2011-05-08
+	People:	M
+	Tags:	foo, bar baz, foobar
+	
+	EXPECTED)
+    [ "$status" == 0 ]
+    [ "$output" == "$expected" ]
+}
+
+@test "dr edit - edit specified dream files" {
+    # try making a small change with 'ed'
+    cp 00005.dre save.dre
+    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr edit 5
+    run diff 00005.dre save.dre 
+    mv save.dre 00005.dre
+    expected=$(echo -e "4d3\n< pq")
+    [ "$status" == 1 ]
+    [ "$output" == "$expected" ]
+}
+
+@test "dr filename-display - show matching filenames" {
+    run dr filename-display 2 4-5
+    expected="00002.dre 00004.dre 00005.dre"
+    [ "$output" == "$expected" ]
+}
+
+@test "dr get-header - print values of one header for specified dreams" {
+	run dr get-header People 1 4 5
+	expected=$(cat <<-EXPECTED
+	1: Albert Einstein
+	4: Q
+	EXPECTED)
+	# There is nothing for 5, because it doesn't have a People header at all;
+	# we might want to change this behavior later, but it's considered correct
+	# for now.
+	[ "$output" == "$expected" ]
+}
+
+@test "dr header-values - print values used for a header in specified dreams" {
+	run dr header-values Places
+	expected=$(cat <<-EXPECTED
+	Sunnyside
+	VHS
+	EXPECTED)
+	[ "$output" == "$expected" ]
+
+	run dr header-values -f Places
+	expected=$(cat <<-EXPECTED
+	      3 Sunnyside
+	      1 VHS
+	EXPECTED)
+	[ "$output" == "$expected" ]
+
+	run dr header-values -f Places 1 6-
+	expected=$(cat <<-EXPECTED
+	      1 Sunnyside
+	      1 VHS
+	EXPECTED)
+	[ "$output" == "$expected" ]
+}
+
+@test "dr list-headers - show all headers used in specified dreams" {
+	run dr list-headers
+	expected=$'Date\nId\nLucid\nPeople\nPlaces\nTags'
+	[ "$output" == "$expected" ]
+
+	run dr list-headers 1-8
+	expected=$'Date\nId\nPeople\nPlaces\nTags'
+	[ "$output" == "$expected" ]
+}
+
+@test "dr word-count - count different kinds of words in specified dreams" {
+	run dr word-count 1 last
+	expected=$(cat <<-EXPECTED
+	
+	~ 00001.dre ~
+	Normal:	9
+	Lucid:	0
+	Notes:	0
+	Total:	9
+
+	~ 00009.dre ~
+	Normal:	9
+	Lucid:	6
+	Notes:	5
+	Total:	20
+
+	~ total ~
+	Normal:	18
+	Lucid:	6
+	Notes:	5
+	Total:	29
+	EXPECTED)
+	echo $output
+	[ "$output" == "$expected" ]
 }

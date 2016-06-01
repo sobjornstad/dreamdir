@@ -337,7 +337,7 @@ colorify() {
 	local txt
 	txt=$(echo "$1" | sed -e 's/"/\\"/g' | perl -pe 's/\n/\\n/g')
 	python2 <<-END
-    # -*- coding: utf-8 -*-
+	# -*- coding: utf-8 -*-
 	from scripts.ddirparse import strHighlight
 	colors = {'headers': '$COL_HEADERS', 'lucid': '$COL_LUCID',
 	          'notes': '$COL_NOTES', 'verbatim': '$COL_VERBATIM',
