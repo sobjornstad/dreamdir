@@ -1,15 +1,22 @@
 #!/bin/bash
+# shellcheck disable=2086
+# shellcheck disable=2001
+
 # %%% dr - Dreamdir utility program
 # Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
 
-##### SHELLCHECK DIRECTIVES #####
-# Turn off checks for variable quoting.
-# shellcheck disable=2086
+##### NOTES ON SHELLCHECK DIRECTIVES #####
+# (For some stupid reason there can't be other comments between the shebang and
+# the disable directives.)
+# 2086: Turn off checks for variable quoting.
 #   It's really too bad this has to be turned off, because it catches places
 #   where variables really should have been quoted but were not. Unfortunately,
 #   it flags passing around command-line arguments and lists of files like
 #   "grep 'pattern' $dreamGlob" as errors, and as such produces a heap of
 #   irrelevant warnings in this script.
+# 2001: Turn off checks for using 'sed' instead of shell internal replacement.
+#   All the situations it flagged were either too complicated or weren't a good
+#   choice for some other reason.
 
 
 ##### CONSTANTS #####
@@ -435,7 +442,7 @@ dreamfind() {
             ;;
 
         *) # filename glob
-            if [[ $(echo "$1" | grep ".dre") ]]; then
+            if echo "$1" | grep -q ".dre"; then
                 newargs="$1"
             else
                 newargs="$1.dre"
@@ -552,12 +559,14 @@ stats_display() {
     if [ ! -z "$filenamesToday" ]; then
         local dreamsToday=$(echo "$filenamesToday" | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
         local numDreamsToday=$(echo "$dreamsToday" | wc -w)
-        local dreamsTodayDisp=$(echo "$dreamsToday" | sed -e 's/ /, /g')
-        local lucidsToday=$(grep 'Lucid:	' "$filenamesToday" | wc -l)
-        local wordCountToday=$(wc -w "$filenamesToday" | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
+        local dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
+        # shellcheck disable=2126
+        # :: not an appropriate usage of 'grep -c'
+        local lucidsToday=$(grep -c 'Lucid:	' $filenamesToday | wc -l)
+        local wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
         if [ -f "$wordCountToday" ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
-            wordCountToday=$(wc -w "$filenamesToday" | cut -d ' ' -f 1)
+            wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
         fi
     fi
 
@@ -629,7 +638,7 @@ PYTH_MOSTWORDS
     local mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
 
     local lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
-    local numLucids=$(echo $lucidFilenames | wc -w) # -w: $() collapses \n to space
+    local numLucids=$(echo $lucidFilenames | wc -w)
     local percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
     local totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
     local avgLucidWordCount=$((totalLucidWordCount / numLucids))
@@ -697,6 +706,8 @@ STATS_DISP
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
 didpush=0
+# shellcheck disable=2034
+# :: not using this variable now, but it's good to have it here if we need it
 oldpwd="$PWD" # if we need to know where the user is running the script from
 if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
     didpush=1
@@ -710,9 +721,8 @@ if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
 fi
 
 # Confirm that we've ended up in a dreamdir.
-error="Please run this script from a dreamdir, or set the environment\n"\
-"variable \$DREAMDIR to the path to your dreamdir."
-ensure '-f .dreamdir' "$error"
+ensure '-f .dreamdir' "Please run this script from a dreamdir, or set the environment
+variable \$DREAMDIR to the path to your dreamdir."
 
 # Figure out what action we're going to do and jump to appropriate code.
 [ -z "$1" ] && usagemsg
@@ -783,7 +793,7 @@ NEWDREAM
     else commparams="-3"
     fi
 
-    read toFilter
+    read -r toFilter
     dreamfind "$@"
     results=$(comm $commparams <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
     # since comm needs sorted content, we have to reapply the order changes
@@ -915,7 +925,7 @@ NEWDREAM
             echo -e "\e[1;31mThat looks like quite a few dreams.\e[0m"
         fi
         echo "If this doesn't sound right, please check the results without -f first!"
-        read -p "Do you wish to continue (y/n)? " doCont
+        read -rp "Do you wish to continue (y/n)? " doCont
         if [ "$doCont" != "y" ]; then
             exit 0
         fi
@@ -981,6 +991,8 @@ WC_END
     scripts/RegeneratePlots.sh ;;
 
 "last-lucid"|"ll")
+    # shellcheck disable=2046
+    # :: word splitting on the grep is correct
     "$EDITOR" $(grep -l 'Lucid:	' $dreamGlob | tail -n 1) ;;
 
 "become-lucid"|"bl")
@@ -1000,5 +1012,7 @@ WC_END
     ;;
 esac
 
+# shellcheck disable=2119
+# :: we don't want 'popd "$@"', shellcheck.
 [[ $didpush == 1 ]] && popd
 exit 0
