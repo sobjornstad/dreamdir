@@ -4,3 +4,4 @@
 * get-header should probably not skip dreams that don’t match at all?
 * Clean up error messages when using invalid syntax for actions; they do all
   sorts of different things.
+* Protect against user using @ (system reserved character) somewhere in command line

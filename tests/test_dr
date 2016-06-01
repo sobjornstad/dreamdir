@@ -184,6 +184,10 @@ fn_check() {
     # ranges
     fn_test "1, 2, 3" 1-3
     fn_test "1, 2, 3" 00001-00003
+    fn_test "8, 9" 8-
+    fn_test "1, 2, 3, 4" -4
+    fn_test "1, 2, 3, 4" -00004
+    fn_test "1, 2, 3, 4, 5, 6, 7, 8, 9" -
 
     # NOMATCH doesn't work since we have a different error message condition
     # || true: this returns 1 and BATS will get mad if anything returns nonzero

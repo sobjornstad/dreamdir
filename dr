@@ -96,9 +96,10 @@ Select dreams matching search expression <expr> and take <action>
                              SEARCH EXPRESSIONS
 A search expression is one or more of the following. If multiple search
 expressions are given, their results will be concatenated.
-  * a dream number (leading zeroes allowed but not required)
-  * a range of numbers (e.g., 12-18; leading zeroes allowed but not required)
-  * a Bash globbing pattern for some dream numbers (leading zeroes required)
+  * a dream number (leading zeroes are allowed but not required)
+  * a range of numbers: 12-18 or -18 (i.e., 1-18) or 12- (i.e., 12-last dream);
+    leading zeroes are allowed but not required
+  * a Bash globbing pattern for some dream numbers (leading zeroes are required)
   * a[ll]          :: select all dreams (same as a quoted '*')
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
@@ -115,10 +116,10 @@ selected. Options are still parsed (see below).
 
 Globbing patterns used in search expressions should be quoted (e.g., to edit
 all dreams, use "dr edit '*'" , not "dr edit *").  They will be expanded either
-way, but 'dr' parses large numbers of arguments much more slowly, so the search
-will finish faster if you quote the pattern.  Note also that, when the pattern
-is quoted, including '.dre' is optional -- that is, '0100[34]' expands to
-'01003.dre 01004.dre'.
+way, but 'dr' can parse a glob more quickly than a very long argument list, so
+the search will finish faster if you quote the pattern.  Note also that
+including '.dre' is optional -- that is, '0100[34]' expands to '01003.dre
+01004.dre'.
 
                              HREGEXES
 <hregex>es are Extended Regular Expressions (EREs) that match only within
@@ -308,6 +309,16 @@ numerize() {
     fi
 }
 
+# defileify()
+# Given some dream filenames, convert them to comma-separated numbers, with no
+# leading zeroes, and print the result.
+#
+# Arguments:
+# (variable number) - the files to process
+defileify() {
+    echo "$@" | sed -e 's/\(^\| \)00*/\1/g' | sed -e 's/\.dre/,/g' | sed -e 's/,$//'
+}
+
 # colorify()
 # Given a string, print the string with "syntax highlighting" for dreamdir
 # syntax.
@@ -338,8 +349,14 @@ colorify() {
 }
 
 # getrange()
-# Given a range of dreams in the form Range ::= Number{+}-Number{+}, print
-# a string of the filenames of dreams in that range (inclusive).
+# Given a range of dreams in the form Range ::= Number{*}@Number{*}, print
+# a string of the filenames of dreams in that range (inclusive). If one of the
+# numbers is missing, the first or last dream in the dreamdir is implied; '@'
+# as a range is equivalent to all dreams.
+#
+# The @ will probably be input as something more sensible like '-'; we just use
+# it as an internal separator because it doesn't conflict with command-line
+# options.
 #
 # Called in several places in dreamfind().
 #
@@ -352,8 +369,16 @@ colorify() {
 getrange() {
     ensure "! -z \"$1\"" "Invalid arguments given to getrange()"
     local startat; local endat
-    startat=$(echo "$1" | cut -d '-' -f 1)
-    endat=$(echo "$1" | cut -d '-' -f 2)
+    startat=$(echo "$1" | cut -d '@' -f 1)
+    endat=$(echo "$1" | cut -d '@' -f 2)
+    if [ -z "$startat" ]; then
+        dreamfind 1
+        startat=$(defileify $args)
+    fi
+    if [ -z "$endat" ]; then
+        dreamfind last
+        endat=$(defileify $args)
+    fi
     ensure "! -z \"$startat\"" "No results."
     ensure "! -z \"$endat\"" "No results."
     seq -f '%05g.dre' "$startat" "$endat"
@@ -362,9 +387,29 @@ getrange() {
 
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
-# Parse a search expression. The filenames of matching dreams are placed in
-# the variable $args.
+# Parse a search expression. The filenames of matching dreams are placed in the
+# variable $args.
+#
+# This function may be used either to parse user input or to select dreams
+# matching some pattern from within the script.
+#
+# Arguments:
+# (variable number) A search expression, as input at the command line.
 dreamfind() {
+    # Before parsing optional arguments, we have to change the delimiter used
+    # for ranges, because getopts isn't smart enough to see that "-20" is a
+    # unidirectional range from 1-20, not two arguments "2" and "0".
+    # http://unix.stackexchange.com/questions/258512/how-to-remove-a-positional-parameter-from
+    for arg; do
+        shift
+        if [[ $arg =~ ^[0-9]*-[0-9]*$ ]]; then
+            newarg="${arg//-/@}"
+        else
+            newarg="$arg"
+        fi
+        set -- "$@" "$newarg"
+    done
+
     # Parse optional arguments to edit.
     df_doReverse=0    # global because a user that has to sort the results
     df_doShuf=0       # for further processing has to reapply these filters
@@ -392,7 +437,7 @@ dreamfind() {
         set -- "all"
     fi
 
-    # Otherwise, compile a list of all the dreams we've specified.
+    # Now compile a list of all the dreams we've specified.
     args=""
     local newargs=""
     local howMany=0
@@ -401,7 +446,7 @@ dreamfind() {
         if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
             let local num=10#$1  # in case user uses leading zeroes
             printf -v newargs '%05d.dre' "$num"
-        elif [[ $1 =~ ^[0-9][0-9]*-[0-9][0-9]*$ ]]; then
+        elif [[ $1 =~ ^[0-9]*@[0-9]*$ ]]; then
             newargs=$(getrange "$1")
         else case "$1" in
         "last"|"back"|"l"|"b")
@@ -421,7 +466,7 @@ dreamfind() {
         "grep"|"g")
             ensure "! -z \"$2\"" "'grep' needs a pattern. (See 'dr help search' for help.)"
             newargs=$(grep -El "$2" $dreamGlob)
-            shift # automatic shift handles only one arg
+            shift
             ;;
 
         "random"|"r")
@@ -802,8 +847,8 @@ NEWDREAM
 "find"|"f")
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
-    results="$(echo $args | sed -e 's/\(^\| \)00*/\1/g' | sed -e 's/\.dre/,/g')"
-    echo -e "$(echo $results | wc -w) matches: [$results\b]"
+    results="$(defileify $args)"
+    echo -e "$(echo $results | wc -w) matches: [$results]"
     ;;
 
 "filename-display"|"fd")
