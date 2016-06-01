@@ -529,8 +529,7 @@ dreamfind() {
     [ -z "$args" ] && die "No results."
     for i in $args
     do
-        error="Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
-        ensure "-f \"$i\"" "$error"
+        ensure "-f \"$i\"" "Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
     done
 }
 
