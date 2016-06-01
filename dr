@@ -420,8 +420,12 @@ dreamfind() {
             ;;
 
         "random"|"r")
-            howMany=$2
-            [ -z "$howMany" ] && howMany=1
+            if [ -z "$2" ]; then
+                howMany=1
+            else
+                howMany=$2
+                shift
+            fi
             newargs=$(find $dreamGlob | shuf | head -n "$howMany" | sort)
             ;;
 
