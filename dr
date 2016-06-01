@@ -323,7 +323,8 @@ COL_CLEAR=$(tput sgr0)
 
 colorify() {
     # escape quotes and newlines so we can plop this into a Python string
-	local txt=$(echo "$1" | sed -e 's/"/\\"/g' | perl -pe 's/\n/\\n/g')
+	local txt
+	txt=$(echo "$1" | sed -e 's/"/\\"/g' | perl -pe 's/\n/\\n/g')
 	python2 <<-END
     # -*- coding: utf-8 -*-
 	from scripts.ddirparse import strHighlight
@@ -350,8 +351,9 @@ colorify() {
 # 00004.dre 00005.dre 00006.dre 00007.dre 00008.dre
 getrange() {
     ensure "! -z \"$1\"" "Invalid arguments given to getrange()"
-    local startat=$(echo "$1" | cut -d '-' -f 1)
-    local endat=$(echo "$1" | cut -d '-' -f 2)
+    local startat; local endat
+    startat=$(echo "$1" | cut -d '-' -f 1)
+    endat=$(echo "$1" | cut -d '-' -f 2)
     ensure "! -z \"$startat\"" "No results."
     ensure "! -z \"$endat\"" "No results."
     seq -f '%05g.dre' "$startat" "$endat"
@@ -436,7 +438,8 @@ dreamfind() {
             # the user's regex to match '@@@@@' as BOL/EOL and not cross it
             # with '.'.
             local header="$2"
-            local pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
+            local pattern
+            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
             newargs=$(grep -m 1 "$header:	" $dreamGlob | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
@@ -487,7 +490,8 @@ validate_dreamdir() {
     find $dreamGlob | sort > "$tempfile"
 
     # check for id problems
-    local checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
+    local checkFailedFor
+    checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
     if [ $? == 0 ]; then
         echo "ID value check...OK"
     else
@@ -554,26 +558,30 @@ stats_display() {
     local colOn='[1;34m'
     local colOff='[0m'
 
-    local today=$(date '+%Y-%m-%d')
-    local filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
+    local today; local filenamesToday
+    today=$(date '+%Y-%m-%d')
+    filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
     if [ ! -z "$filenamesToday" ]; then
-        local dreamsToday=$(echo "$filenamesToday" | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
-        local numDreamsToday=$(echo "$dreamsToday" | wc -w)
-        local dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
+        local dreamsToday; local numDreamsToday; local dreamsTodayDisp
+        local lucidsToday; local wordCountToday
+        dreamsToday=$(echo "$filenamesToday" | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
+        numDreamsToday=$(echo "$dreamsToday" | wc -w)
+        dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
         # shellcheck disable=2126
         # :: not an appropriate usage of 'grep -c'
-        local lucidsToday=$(grep -c 'Lucid:	' $filenamesToday | wc -l)
-        local wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
+        lucidsToday=$(grep -c 'Lucid:	' $filenamesToday | wc -l)
+        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
         if [ -f "$wordCountToday" ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
             wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
         fi
     fi
 
-    local numDreams=$(find $dreamGlob | wc -l)
-    local wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
-    local avgWordCount=$((wordCount / numDreams))
-    local dateStats=$(python2 <<PYTH_DATEFREQ
+    local numDreams; local wordCount; local avgWordCount; local dateStats
+    numDreams=$(find $dreamGlob | wc -l)
+    wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
+    avgWordCount=$((wordCount / numDreams))
+    dateStats=$(python2 <<PYTH_DATEFREQ
 # OUTPUT FORMAT:
 # <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
 import scripts.ddirparse as dp
@@ -593,7 +601,8 @@ print byFreq[-1],       # most number of dreams
 print freqs[byFreq[-1]] # how many?
 PYTH_DATEFREQ
 )
-    local mostWordsDay=$(python2 <<PYTH_MOSTWORDS
+    local mostWordsDay
+    mostWordsDay=$(python2 <<PYTH_MOSTWORDS
 # Getting acceptable performance here requires unfolding some possible
 # functions and abstractions into this (nevertheless simple enough) loop.
 # TODO: This should be a function in scripts.ddirparse, I can think of tons of
@@ -622,28 +631,35 @@ print wcOrder[0], wcs[wcOrder[0]], # # of dreams, date of it
 print len(dp.getDreamsTagged('Date', wcOrder[0])) # how many dreams
 PYTH_MOSTWORDS
 )
-    local datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
-    local avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
-    local avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
-    local earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
-    local latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
-    local mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
-    local numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
+    local datesRecorded; local avgDreamsPerDay; local avgWordCountDay
+    local earliestDate; local latestDate; local mostDreamsDate; local numMostDreams
+    datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
+    avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
+    avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
+    earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
+    latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
+    mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
+    numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
 
-    local mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
-    local mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
-    local dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
-    local mostWordsDream=$(wc -w $dreamGlob | sort -n | sed -e '$ d' | tail -n 1)
-    local mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
-    local mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
+    local mostWordsOnDay; local mostWords; local dreamsInMostWordsDay
+    local mostWordsDream; local mostWordsDreamNum; local mostWordsDreamCount
+    mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
+    mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
+    dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
+    mostWordsDream=$(wc -w $dreamGlob | sort -n | sed -e '$ d' | tail -n 1)
+    mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
+    mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
 
-    local lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
-    local numLucids=$(echo $lucidFilenames | wc -w)
-    local percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
-    local totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
-    local avgLucidWordCount=$((totalLucidWordCount / numLucids))
-    local percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
-    local daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
+    local lucidFilenames; local numLucids; local percentLucid
+    local totalLucidWordCount; local avgLucidWordCount; local percentLucidWordCount
+    local daysRecordedLds; local percentDaysRecordedLds
+    lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
+    numLucids=$(echo $lucidFilenames | wc -w)
+    percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
+    totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
+    avgLucidWordCount=$((totalLucidWordCount / numLucids))
+    percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
+    daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
 # Output format: <days with recorded LDs>
 import scripts.ddirparse as dp
 dp.setDreamdir("$PWD")
@@ -657,7 +673,7 @@ for i in lucids:
 print len(lucidDays)
 PYTH_DAYS_LDS
 )
-    local percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
+    percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
 
 # Consider, inserting commas into a number:
 # echo "$number" | rev | sed 's/\([0-9][0-9][0-9]\)\([0-9]\)/\1,\2/g' | rev
