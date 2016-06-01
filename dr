@@ -396,7 +396,8 @@ dreamfind() {
     args=""
     local newargs=""
     local howMany=0
-    while [ ! -z "$1" ]; do
+    while [ ! -z "$1" ]
+    do
         if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
             let local num=10#$1  # in case user uses leading zeroes
             printf -v newargs '%05d.dre' "$num"
@@ -404,13 +405,17 @@ dreamfind() {
             newargs=$(getrange "$1")
         else case "$1" in
         "last"|"back"|"l"|"b")
-            howMany="$2"
-            [ -z "$2" ] && howMany=1
+            local action=$1
+            if [[ ! -z "$2" && $2 =~ ^[0-9]+$ ]]; then
+                howMany="$2"
+                shift
+            else
+                howMany=1
+            fi
             newargs=$(find $dreamGlob | tail -n "$howMany")
-            if [[ "$1" == "back" || "$1" == "b" ]]; then
+            if [[ "$action" == "back" || "$action" == "b" ]]; then
                 newargs=$(echo "$newargs" | head -n 1)
             fi
-            [ ! -z "$2" ] && shift # automatic shift handles only one arg
             ;;
         
         "grep"|"g")
@@ -420,11 +425,11 @@ dreamfind() {
             ;;
 
         "random"|"r")
-            if [ -z "$2" ]; then
-                howMany=1
-            else
+            if [[ ! -z "$2" && $2 =~ ^[0-9]+$ ]]; then
                 howMany=$2
                 shift
+            else
+                howMany=1
             fi
             newargs=$(find $dreamGlob | shuf | head -n "$howMany" | sort)
             ;;
