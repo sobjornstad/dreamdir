@@ -66,7 +66,19 @@ helptest() {
 	[ "$output" == "$expected" ]
 }
 
-# Still to test: header-replace, last-lucid, regenerate-graphs, stats, validate, version
+@test "dr version - display the version number" {
+	expected_ver=$(grep "^MYVERSION=" dr | sed -e 's/MYVERSION="\(.*\)"/\1/')
+	run dr version
+	[ "$output" == "dr version $expected_ver" ]
+}
+
+@test "dr last-lucid - legacy way to edit the last lucid dream" {
+	EDITOR=cat run dr last-lucid
+	[ "${lines[0]}" == "Id:	00009" ]
+}
+
+# Still to test: header-replace, regenerate-graphs, stats, validate
+
 
 ##### SEARCHES #####
 # First we test all search expressions using 'find'. Then, having confirmed
