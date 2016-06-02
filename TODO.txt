@@ -1,7 +1,8 @@
 * getDreamsTagged might be broken if ‘Id’ isn’t the first header -- fix
 * More work on tests
-* An option to sort ORed-together conditions, or not
+* An option to sort/uniq ORed-together conditions, or not
 * get-header should probably not skip dreams that don’t match at all?
 * Clean up error messages when using invalid syntax for actions; they do all
   sorts of different things.
 * Protect against user using @ (system reserved character) somewhere in command line
+* Do a better job of parsing optional args to actions (not search-exprs)

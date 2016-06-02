@@ -364,7 +364,9 @@ Note the two-step process. You should definitely *not* try to skip the first ste
 
 Of course, this example is trivial, and this particular error could be fixed much faster by doing `dr edit` and changing the tag manually; the real benefit comes when there are tens of dreams (or more) that need changes.
 
-Support
-=======
+Support & Development
+=====================
 
-Please post bugs on the Github issue tracker and/or email me at `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention your operating system and version of bash. Improvements and pull requests are welcome as long as you release your code under the MIT license and they are consistent with the project’s philosophy.
+Please post bugs on the Github issue tracker; if you prefer you can email me at `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention your operating system and version of bash.
+
+Improvements and pull requests are welcome as long as you release your code under the MIT license and they are consistent with the project’s philosophy. Please make sure that `tests/pre-commit-hook.sh` exits successfully before submitting any modifications to `dr`; this requires [shellcheck](http://www.shellcheck.net/), [BATS](https://github.com/sstephenson/bats), and GCC. If you have modified the behavior of `dr`, you may need to change the tests in `tests/test_dr`; they are pretty easy to figure out. If you don’t want to install `shellcheck` (it requires Haskell and takes some time to install), you can paste the code on the shellcheck website and then run `tests/test_dr` and `cd scripts && make clean && make` manually to finish the pre-commit tests.
