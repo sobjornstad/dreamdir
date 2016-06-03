@@ -625,7 +625,7 @@ stats_display() {
         dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
         # shellcheck disable=2126
         # :: not an appropriate usage of 'grep -c'
-        lucidsToday=$(grep -c 'Lucid:	' $filenamesToday | wc -l)
+        lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
         wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
         if [ -f "$wordCountToday" ]; then
             # there was only one dream and no "total" line, so we pulled out the wrong thing
