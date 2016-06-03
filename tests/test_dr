@@ -52,7 +52,6 @@ helptest() {
 }
 
 @test "dr new - create new dream file" {
-	EDITOR='cat' run dr new
 	expected=$(cat <<-EXPECTED
 	Id:	00010
 	Date:	$(date '+%Y-%m-%d')
@@ -62,6 +61,10 @@ helptest() {
 
 	Deleting unmodified dream file.
 	EXPECTED)
+	EDITOR='cat' run dr new
+	[ "$status" == 0 ]
+	[ "$output" == "$expected" ]
+	EDITOR='cat' run dr n
 	[ "$status" == 0 ]
 	[ "$output" == "$expected" ]
 }
@@ -76,6 +79,8 @@ helptest() {
 
 @test "dr last-lucid - legacy way to edit the last lucid dream" {
 	EDITOR=cat run dr last-lucid
+	[ "${lines[0]}" == "Id:	00009" ]
+	EDITOR=cat run dr ll
 	[ "${lines[0]}" == "Id:	00009" ]
 }
 
@@ -147,7 +152,8 @@ fn_check() {
 
     # NOMATCH doesn't work since we have a different error message condition
     # || true: this returns 1 and BATS will get mad if anything returns nonzero
-    result=$(dr find '[025]*[12]0') || true
+    # Take this opportunity to test the short version of the 'find' command.
+    result=$(dr f '[025]*[12]0') || true
     expected=$(cat <<-EXPECTED
 	Matched nonexistent file '[025]*[12]0.dre'; please check your search terms and try again.
 	(Type 'dr help search' for help.)
@@ -191,6 +197,12 @@ fn_check() {
     fn_check "7" "$result"
     result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr xwinnow tagged People OC))
     fn_check "6" "$result"
+
+    # short forms
+    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr w tagged People OC))
+    fn_check "7" "$result"
+    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr x tagged People OC))
+    fn_check "6" "$result"
 }
 
 @test "dr find misc - test of other search expressions" {
@@ -225,7 +237,7 @@ fn_check() {
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
 
-    run dr cat 0000[48]
+    run dr c 0000[48]
     # 3x '\n': bash seems to automatically strip one of them
     expected=$(echo -e "$(cat 00004.dre)\n\n\n$(cat 00008.dre)\n\n")
     [ "$status" == 0 ]
@@ -233,7 +245,6 @@ fn_check() {
 }
 
 @test "dr dump-headers - print specified dream headers on stdout" {
-    run dr dump-headers 0000[48]
 	expected=$(cat <<-EXPECTED
 	Id:	00004
 	Date:	2011-05-06
@@ -247,29 +258,43 @@ fn_check() {
 	Tags:	foo, bar baz, foobar
 	
 	EXPECTED)
+    run dr dump-headers 0000[48]
+    [ "$status" == 0 ]
+    [ "$output" == "$expected" ]
+    run dr dh 0000[48]
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
 }
 
 @test "dr edit - edit specified dream files" {
     # try making a small change with 'ed'
+    expected=$(echo -e "4d3\n< pq")
+
     cp 00005.dre save.dre
     echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr edit 5
     run diff 00005.dre save.dre 
     mv save.dre 00005.dre
-    expected=$(echo -e "4d3\n< pq")
+    [ "$status" == 1 ]
+    [ "$output" == "$expected" ]
+
+    # short version
+    cp 00005.dre save.dre
+    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr e 5
+    run diff 00005.dre save.dre 
+    mv save.dre 00005.dre
     [ "$status" == 1 ]
     [ "$output" == "$expected" ]
 }
 
 @test "dr filename-display - show matching filenames" {
-    run dr filename-display 2 4-5
     expected="00002.dre 00004.dre 00005.dre"
+    run dr filename-display 2 4-5
+    [ "$output" == "$expected" ]
+    run dr fd 2 4-5
     [ "$output" == "$expected" ]
 }
 
 @test "dr get-header - print values of one header for specified dreams" {
-	run dr get-header People 1 4 5
 	expected=$(cat <<-EXPECTED
 	1: Albert Einstein
 	4: Q
@@ -277,6 +302,9 @@ fn_check() {
 	# There is nothing for 5, because it doesn't have a People header at all;
 	# we might want to change this behavior later, but it's considered correct
 	# for now.
+	run dr get-header People 1 4 5
+	[ "$output" == "$expected" ]
+	run dr gh People 1 4 5
 	[ "$output" == "$expected" ]
 }
 
@@ -288,7 +316,7 @@ fn_check() {
 	EXPECTED)
 	[ "$output" == "$expected" ]
 
-	run dr header-values -f Places
+	run dr hv -f Places
 	expected=$(cat <<-EXPECTED
 	      3 Sunnyside
 	      1 VHS
@@ -308,13 +336,12 @@ fn_check() {
 	expected=$'Date\nId\nLucid\nPeople\nPlaces\nTags'
 	[ "$output" == "$expected" ]
 
-	run dr list-headers 1-8
+	run dr lh 1-8
 	expected=$'Date\nId\nPeople\nPlaces\nTags'
 	[ "$output" == "$expected" ]
 }
 
 @test "dr word-count - count different kinds of words in specified dreams" {
-	run dr word-count 1 last
 	expected=$(cat <<-EXPECTED
 	
 	~ 00001.dre ~
@@ -335,6 +362,8 @@ fn_check() {
 	Notes:	5
 	Total:	29
 	EXPECTED)
-	echo $output
+	run dr word-count 1 last
+	[ "$output" == "$expected" ]
+	run dr wc 1 last
 	[ "$output" == "$expected" ]
 }
