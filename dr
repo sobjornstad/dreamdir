@@ -385,6 +385,44 @@ getrange() {
     seq -f '%05g.dre' "$startat" "$endat"
 }
 
+# drwordcount()
+# Call an appropriate program to return a word count.
+#
+# Arguments:
+# $1 - "t" for machine-readable summary of all dreams combined
+#          (normal lucid notes total)
+#      "p" for pretty-printed complete display
+# (variable) dream filenames to pass to the word count program
+drwordcount() {
+    local params
+    if [ "$1" == "p" ]; then
+        params="-p"
+    elif [ "$1" == "t" ]; then
+        params="-s"
+    else
+        die "Illegal arguments to drwordcount()!"
+    fi
+    shift
+
+    # shellcheck disable=2068
+    # :: word splitting on $@ is, in a rare happening, correct
+    if [ -x "scripts/bin/drwc" ]; then
+        scripts/bin/drwc $params $@
+    else
+        if [ "$params" == "-p" ]; then
+            python2 <<WC_END
+import scripts.ddirparse as dp
+print dp.getCount("$@".split(' '), asPrettyString=True)
+WC_END
+        else
+            python2 <<WC_END
+import scripts.ddirparse as dp
+print dp.getCount("$@".split(' '), asString=True)
+WC_END
+        fi
+    fi
+}
+
 
 ##### COMPLICATED ROUTINES #####
 # dreamfind()
@@ -626,16 +664,12 @@ stats_display() {
         # shellcheck disable=2126
         # :: not an appropriate usage of 'grep -c'
         lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
-        wordCountToday=$(wc -w $filenamesToday | tail -n 1 | sed -e 's/^ *//' | cut -d ' ' -f 1)
-        if [ -f "$wordCountToday" ]; then
-            # there was only one dream and no "total" line, so we pulled out the wrong thing
-            wordCountToday=$(wc -w $filenamesToday | cut -d ' ' -f 1)
-        fi
+        wordCountToday=$(drwordcount "t" $filenamesToday | cut -d ' ' -f 4)
     fi
 
     local numDreams; local wordCount; local avgWordCount; local dateStats
     numDreams=$(find $dreamGlob | wc -l)
-    wordCount=$(wc $dreamGlob -w | tail -n 1 | cut -d ' ' -f 2)
+    wordCount=$(drwordcount "t" $dreamGlob | cut -d ' ' -f 4)
     avgWordCount=$((wordCount / numDreams))
     dateStats=$(python2 <<PYTH_DATEFREQ
 # OUTPUT FORMAT:
@@ -661,30 +695,36 @@ PYTH_DATEFREQ
     mostWordsDay=$(python2 <<PYTH_MOSTWORDS
 # Getting acceptable performance here requires unfolding some possible
 # functions and abstractions into this (nevertheless simple enough) loop.
-# TODO: This should be a function in scripts.ddirparse, I can think of tons of
-# other good things to do with this, like graphing and printing a table.
 import scripts.ddirparse as dp
-dp.setDreamdir("$PWD")
-wcs = {}
+wcsId = {}
+wcsDate = {}
 for f in dp.allDreamfiles():
     date = None
+    id = None
     counting = False
     for line in f:
         textline = line.strip()
-        if counting:
-            wcs[date] += len(textline.split())
-        else:
-            if textline.startswith('Date:\t'):
-                date = textline.split(':\t')[1].strip()
-            elif not textline:
-                # end of headers, start counter
-                counting = True
-                if date not in wcs:
-                    wcs[date] = 0
+        if textline.startswith('Id:\t'):
+            id = textline.split(':\t')[1].strip()
+        elif textline.startswith('Date:\t'):
+            date = textline.split(':\t')[1].strip()
+        elif not textline:
+            break
+    if id is None or date is None:
+        print "ERROR: Missing date in dream %s!" % f.name
+        assert False
+    thisWc = dp.getCount([f.name])['total']
+    wcsId[id] = thisWc
+    wcsDate[date] = wcsDate.get(date, 0) + thisWc
+
 # create list of keys sorted by the order of their values, max to min
-wcOrder = sorted(wcs.keys(), cmp=lambda a,b: cmp(wcs[b],wcs[a]))
-print wcOrder[0], wcs[wcOrder[0]], # # of dreams, date of it
-print len(dp.getDreamsTagged('Date', wcOrder[0])) # how many dreams
+wcOrder = sorted(wcsDate.keys(), cmp=lambda a,b: cmp(wcsDate[b],wcsDate[a]))
+print wcOrder[0], wcsDate[wcOrder[0]], # word count, date of it
+print len(dp.getDreamsTagged('Date', wcOrder[0])), # how many dreams
+
+# and for the individual dreams
+wcNumOrder = sorted(wcsId.keys(), cmp=lambda a,b: cmp(wcsId[b],wcsId[a]))
+print wcNumOrder[0], wcsId[wcNumOrder[0]] # ID num, num words in it
 PYTH_MOSTWORDS
 )
     local datesRecorded; local avgDreamsPerDay; local avgWordCountDay
@@ -698,13 +738,12 @@ PYTH_MOSTWORDS
     numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
 
     local mostWordsOnDay; local mostWords; local dreamsInMostWordsDay
-    local mostWordsDream; local mostWordsDreamNum; local mostWordsDreamCount
+    local mostWordsDreamNum; local mostWordsDreamCount
     mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
     mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
     dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
-    mostWordsDream=$(wc -w $dreamGlob | sort -n | sed -e '$ d' | tail -n 1)
-    mostWordsDreamNum=$(echo "$mostWordsDream" | sed -e 's/^ *[0-9]\+ 0*\([0-9]\+\).dre$/\1/')
-    mostWordsDreamCount=$(echo "$mostWordsDream" | sed -e 's/^ *\([0-9]\+\).*/\1/')
+    mostWordsDreamNum=$(echo "$mostWordsDay" | cut -d ' ' -f 4 | sed -e 's/^0*\(.*\)/\1/')
+    mostWordsDreamCount=$(echo "$mostWordsDay" | cut -d ' ' -f 5)
 
     local lucidFilenames; local numLucids; local percentLucid
     local totalLucidWordCount; local avgLucidWordCount; local percentLucidWordCount
@@ -712,7 +751,7 @@ PYTH_MOSTWORDS
     lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
     numLucids=$(echo $lucidFilenames | wc -w)
     percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
-    totalLucidWordCount=$(wc -w $lucidFilenames | tail -n 1 | cut -d ' ' -f 2)
+    totalLucidWordCount=$(drwordcount "t" $lucidFilenames | cut -d ' ' -f 4)
     avgLucidWordCount=$((totalLucidWordCount / numLucids))
     percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
     daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
@@ -730,9 +769,6 @@ print len(lucidDays)
 PYTH_DAYS_LDS
 )
     percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
-
-# Consider, inserting commas into a number:
-# echo "$number" | rev | sed 's/\([0-9][0-9][0-9]\)\([0-9]\)/\1,\2/g' | rev
 
 echo -e "${colOn}Today$colOff"
 echo -e "Today: $today"
@@ -752,7 +788,7 @@ Date range: $earliestDate – $latestDate
 Day with most dreams: $mostDreamsDate ($numMostDreams)
 Total word count: $wordCount
 Average words per dream: $avgWordCount
-Day with highest word count: $mostWordsOnDay ($mostWords words over $dreamsInMostWordsDay dreams)
+Day with highest word count: $mostWordsOnDay ($mostWords words over $dreamsInMostWordsDay $(numerize "$dreamsInMostWordsDay" "dream"))
 Single dream with highest word count: #$mostWordsDreamNum ($mostWordsDreamCount words)
 
 ${colOn}Lucidity$colOff
@@ -1047,14 +1083,7 @@ NEWDREAM
 
 "word-count"|"wc")
     dreamfind "$@"
-    if [ -x "scripts/bin/drwc" ]; then
-        scripts/bin/drwc -p $args
-    else
-        python2 <<WC_END
-import scripts.ddirparse as dp
-print dp.getCount("$args".split(' '), asPrettyString=True)
-WC_END
-    fi
+    drwordcount "p" "$args"
     ;;
 
 "stats"|"s")

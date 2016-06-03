@@ -2,7 +2,9 @@
 * More work on tests
 * An option to sort/uniq ORed-together conditions, or not
 * get-header should probably not skip dreams that don’t match at all?
-* Clean up error messages when using invalid syntax for actions; they do all
-  sorts of different things.
 * Protect against user using @ (system reserved character) somewhere in command line
 * Do a better job of parsing optional args to actions (not search-exprs)
+* Make the Python library itself use the C implementation of word count if
+  possible. Or something -- the different ways to invoke word counts and get a
+  response are an awful mess. The word-count ‘dr’ function should accept the
+  arguments that ‘drwc’ can take, too.
