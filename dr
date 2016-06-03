@@ -839,8 +839,6 @@ shift # arguments to actions start at $1
 
 case "$action" in
 "new"|"n")
-    oldUmask=$(umask)
-    umask 0177 # dreams default to 600 for basic privacy
     today=$(date '+%Y-%m-%d')
     lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
     ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
@@ -872,9 +870,10 @@ NEWDREAM
     if [ $? == 0 ]; then
         echo "Deleting unmodified dream file."
         rm "$newNum.dre"
+    else
+        chmod 600 "$newNum.dre" # dreams default to 600 for basic privacy
     fi
     rm "/tmp/$newNum.dre"
-    umask "$oldUmask"
     ;;
 
 "edit"|"e")
