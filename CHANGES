@@ -1,3 +1,42 @@
+Changes in 1.0.4
+----------------
+
+This release mainly consists of internal cleanup and fixes introduced as a
+result of static analysis with 'shellcheck' and an extended test suite, but a
+few user-facing changes have been made as well.
+
+Bugfixes:
+
+* Fix 'random' not shifting away its arguments and preventing any subsequent
+  search expressions from working.
+* Don't break when additional search expressions are placed after an
+  expression with an optional argument that is not provided (e.g., 'dr find
+  random tagged Places home').
+* 'validate' has been changed to 'check-validity' to resolve an abbreviation
+  conflict with 'version'. 'validate' is retained as a deprecated alias of
+  'check-validity'; 'v' now works only for 'version'.
+
+New features:
+
+* "headerdex" script to create an index from the headers of all dreams.
+* Numerical ranges can now be used as search expressions (1-5, 1-, and -5 are
+  all valid ranges, with the open end being replaced with the first or last
+  dream as appropriate).
+* 'cat' and 'dump-headers' will now color their output in a manner similar to
+  the vim syntax highlighting file, if output is to a terminal. Note that this
+  may cause a noticeable slowdown if printing a very large amount of output to a
+  terminal.
+* 'stats' now uses the improved Dreamdir word counts rather than the system 'wc'
+  command. This means your word counts may drop noticeably because your headers
+  are no longer being counted as part of your dream text.
+
+Under-the-hood improvements:
+
+* Add use of 'shellcheck' to the pre-commit hook script, and add notes about
+  running these tests before contributing any code.
+* Too many others to list -- please see the commit history for details.
+
+
 Changes in 1.0.3
 ----------------
 
