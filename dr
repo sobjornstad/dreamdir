@@ -74,7 +74,7 @@ new                 :: create a new dream with the next available ID
                        number and open it for editing
 regenerate-graphs   :: run scripts/RegeneratePlots.sh to make graphs
 stats               :: display dream statistics
-validate            :: format sanity check: ensure all dreams have
+check-validity      :: format sanity check: ensure all dreams have
                        IDs and dates and ID numbers are contiguous
 version             :: print version number of this 'dr'
 
@@ -225,8 +225,9 @@ confirm interactively that you've double-checked the preview.
 
 (NOTE: If the replace command gets interrupted in the middle, it is possible,
 though very unlikely, that one of your dreams will have been deleted; you can
-check this by seeing if 'dr validate' fails with a missing ID number.  If this
-does occur you will find the content in the file 'repl.tmp' in your dreamdir.)
+check this by seeing if 'dr check-validity' fails with a missing ID number.  If
+this does occur you will find the content in the file 'repl.tmp' in your
+dreamdir.)
 USAGEMSG
 }
 
@@ -1039,7 +1040,8 @@ NEWDREAM
 
     ;;
 
-"validate"|"v")
+"check-validity"|"validate"|"cv")
+    [ "$action" == "validate" ] && >&2 echo "WARNING: 'validate' is now 'check-validity'. 'validate' will be removed in a future version."
     validate_dreamdir
     ;;
 

@@ -70,6 +70,8 @@ helptest() {
 	expected_ver=$(grep "^MYVERSION=" dr | sed -e 's/MYVERSION="\(.*\)"/\1/')
 	run dr version
 	[ "$output" == "dr version $expected_ver" ]
+	run dr v
+	[ "$output" == "dr version $expected_ver" ]
 }
 
 @test "dr last-lucid - legacy way to edit the last lucid dream" {
