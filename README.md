@@ -254,9 +254,9 @@ Some of these no doubt involve *traveling* with a train, but some of them do not
         00979.dre 00987.dre 01031.dre 01032.dre 01103.dre 01114.dre 01188.dre \
         01205.dre 01222.dre
 
-The filename output might not be what we prefer, but a list of filenames is also a valid search expression itself. We can thus use our shell’s command substitution to do whatever we want with the search results (note the use of `!!` for the previous command):
+The filename output might not be what we prefer. If we want to take a search action on the results of a pipeline like this, we can use the `act` action (note the use of `!!` for the previous command):
 
-    $ dr get-header Places $(!!)
+    $ !! | dr act get-header Places
     771: San Diego
     785: St. Olaf, California
     872: Sunnyside, U.J.'s house
@@ -272,12 +272,12 @@ The filename output might not be what we prefer, but a list of filenames is also
 
 Those are the ones that involved both trains and travel, but what about the ones that involve trains but *not* travel? With a moderate input size such as this one, we could manually take the set difference, but that would be stupid when we have the `-v` option:
 
-    $ dr find $(dr filename-display tagged Tags train | dr winnow -v tagged Tags travel)
+    $ dr filename-display tagged Tags train | dr winnow -v tagged Tags travel | dr act find
     30 matches: [225, 269, 276, 308, 416, 420, 456, 514, 563, 612, 668, 681, \
                  709, 725, 774, 779, 801, 878, 923, 976, 981, 1005, 1044, \
                  1080, 1162, 1182, 1191, 1210, 1213, 1216]
 
-If we want to check that we got the right result, we can always use the outer `dr find` with more arguments to create an OR condition and confirm that this is the same as the original:
+If we want to check that we got the right result, we might want to OR two AND conditions together and confirm that we get the original values. We can do this using our shell’s command substitution, taking advantage of the fact that a list of filenames is a valid search expression:
 
     $ dr find $(dr filename-display tagged Tags train | dr winnow -v tagged Tags travel) \
               $(dr filename-display tagged Tags train | dr winnow tagged Tags travel)
@@ -288,19 +288,7 @@ If we want to check that we got the right result, we can always use the outer `d
 
 You will probably seldom need such a complicated condition, but it is possible to make one just using I/O redirection.
 
-We’ve seen AND, OR, and NOT conditions; XOR is the black sheep of Boolean logic. It is rarely necessary, but does have a few interesting applications. For instance, I might want to find all the cases where *only* trains or *only* travel are involved, but not both:
-
-    $ dr find $(dr filename-display tagged Tags train | dr xwinnow tagged Tags travel)
-    83 matches: [131, 212, 225, 236, 257, 268, 269, 276, 278, 291, 308, 320, \
-                 396, 416, 420, 456, 480, 514, 525, 529, 563, 566, 570, 571, \
-                 600, 612, 637, 668, 679, 681, 690, 709, 725, 753, 774, 779, \
-                 783, 801, 808, 843, 853, 857, 875, 878, 900, 902, 904, 912, \
-                 923, 933, 976, 981, 993, 1005, 1008, 1009, 1029, 1044, 1045, \
-                 1051, 1052, 1062, 1077, 1080, 1099, 1101, 1113, 1121, 1125, \
-                 1130, 1131, 1132, 1135, 1144, 1150, 1153, 1162, 1182, 1191, \
-                 1210, 1213, 1216, 1221]
-
-I’ve left out several useful types of search expressions; in addition to finding tags in headers and selecting dream numbers individually or with globs, you can do full-text search (`grep`), select numbers backwards from the end (`back` and `last`), and select some dreams randomly for your entertainment or edification (`random`).
+I’ve left out several useful types of search expressions; in addition to finding tags in headers and selecting dream numbers individually or with globs, you can do full-text search (`grep`), select numbers backwards from the end (`back` and `last`), and select some dreams randomly for your entertainment or edification (`random`). See `dr help search` for all the options.
 
 
 Summarizing headers
@@ -373,14 +361,14 @@ Then we actually call `header-replace` for the dreamdir:
 Since the diff output looks like what we wanted, we then call it again with the *force*, `-f`, parameter to actually make the changes:
 
     $ dr header-replace -f Places '^Regents$' 'Regents Hall'
-    You are about to apply a search-and-replace that will affect 3 dreams.
+    You are about to apply a search-and-replace that will affect 1 dream.
     If this doesn't sound right, please check the results without -f first!
     Do you wish to continue (y/n)?
 
     01121.dre modified
     Changed 1 file.
 
-Note the two-step process. You should definitely *not* try to skip the first step; since this is essentially just a really fancy way of using `sed` across all your dream files, a particularly badly formed regex (e.g, replace `.*` with `q`) could do very bad things to your dreams (pun intended).
+Note the two-step process. You should definitely *not* try to skip the first step; since this is essentially just a really fancy way of using `sed` across all your dream files, a particularly badly formed regex (e.g, replace `.` with `q`) could do very bad things to your dreams (pun intended).
 
 Of course, this example is trivial, and this particular error could be fixed much faster by doing `dr edit` and changing the tag manually; the real benefit comes when there are tens of dreams (or more) that need changes.
 

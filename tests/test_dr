@@ -208,6 +208,9 @@ fn_check() {
 @test "dr act - test finishing a pipeline with act" {
     result=$(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC | dr act find)
     fn_check "7" "$result"
+    # regression test against actions that take arguments
+    result=$(dr filename-display tagged Tags school | dr winnow tagged Places VHS | dr act get-header People)
+    [ "$result" == "MN, OC, TML" ]
 }
 
 @test "dr find misc - test of other search expressions" {

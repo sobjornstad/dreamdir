@@ -1101,7 +1101,7 @@ NEWDREAM
     ensure "! -z \"$1\"" \
         "Usage: [chain of piped dr commands] | dr act <search action>"
     input=$(cat <&0)
-    "$0" "$1" $input
+    "$0" "$@" $input
     ;;
 
 "last-lucid"|"ll")
