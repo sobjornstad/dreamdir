@@ -8,3 +8,5 @@
   possible. Or something -- the different ways to invoke word counts and get a
   response are an awful mess. The word-count ‘dr’ function should accept the
   arguments that ‘drwc’ can take, too.
+* Tag blacklists
+* Plugins (by searching a plugins directory for action name script?).

@@ -75,6 +75,7 @@ last-lucid          :: edit the dream with the highest number that
 new                 :: create a new dream with the next available ID
                        number and open it for editing
 regenerate-graphs   :: run scripts/RegeneratePlots.sh to make graphs
+regenerate-tags     :: run scripts/vimtags.py to update the Vim tags list
 stats               :: display dream statistics
 check-validity      :: format sanity check: ensure all dreams have
                        IDs and dates and ID numbers are contiguous
@@ -1092,6 +1093,9 @@ NEWDREAM
 
 "regenerate-graphs"|"rg")
     scripts/RegeneratePlots.sh ;;
+
+"regenerate-tags"|"rt")
+    scripts/vimtags.py ;;
 
 "act"|"a")
     ensure "! -z \"$1\"" \

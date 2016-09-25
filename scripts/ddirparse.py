@@ -122,15 +122,32 @@ def getAttribForAllDreams(attrib):
 
     return dreams
 
-def getAllHeaders():
+def getAllHeaders(includeText=False):
+    """
+    Get a dictionary of dream numbers and headers. If includeText=true, also
+    add the text of the dream to the dictionary as 'text' (note that this key
+    is all lowercase so it will not conflict with the usual convention for
+    header names, even if "Text" would be an odd header name).
+    """
     dreams = {}
     for f in allDreamfiles():
         dream = {}
+        textLines = []
+        inHeaders = True
         for line in f:
             if not line.strip(): # end of headers
-                break
-            header, value = (i.strip() for i in line.split(':\t'))
-            dream[header] = value
+                if includeText:
+                    inHeaders = False
+                else:
+                    break
+            if inHeaders:
+                header, value = (i.strip() for i in line.split(':\t'))
+                dream[header] = value
+            else:
+                textLines.append(line)
+        if includeText:
+            # omit the first blank separator line
+            dream['text'] = '\n'.join(i for i in textLines[1:])
         dreams[dream['Id']] = dream
     return dreams
 

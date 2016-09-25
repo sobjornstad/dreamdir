@@ -153,6 +153,26 @@ For those who use vim, my syntax highlighting and ftplugin files are located in 
 
 You may want to remove the `setlocal cpoptions+=J` (`:help cpo-J`) line from `vim/ftplugin/dream.vim` if you don’t want to double-space between sentences (see the “Formatting guidelines” section above).
 
+Tags functionality for vim is also included. The tags file contains tags for all dream ID numbers and all header values. You can do a number of handy things with this. Among others:
+
+* With a dream open, jump to a different dream N with `:ta N`, e.g., `:ta 900`.
+* With the cursor on a dream number (*see #900*), press `Control-]` to open
+  that dream.
+* With a header value highlighted in visual mode, or with the cursor on top of
+  a single-word header value, press `g]` to show all matching tags. This will
+  show all the dreams that use that header value, along with the whole header
+  line and the Title header of the matching dream (if available).
+* Search for header values containing *foo* with `:tjump /foo`. Along with
+  being a handy way to do a quick search without having to leave your editor
+  and run `dr` again, this is an easy way to answer questions about what tags
+  you’ve previously used when you’re thinking of tags for the dream you’re
+  currently writing up.
+
+Tags are stored in the file `.dreams.ctags` in your dreamdir folder. They need
+to be initially created as well as updated periodically by running `dr
+regenerate-tags`; any changes to headers or new dreams will not be known to Vim
+until the tags file is updated.
+
 The `dr` script
 ===============
 
