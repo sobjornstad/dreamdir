@@ -1,3 +1,20 @@
+Changes in 1.0.5
+----------------
+
+Bugfixes:
+
+* Work around vim's system() getting messed up by a nonstandard umask: just
+  change the permissions with chmod after creation rather than using umask.
+
+New features:
+
+* You can place, e.g., 'dr act dump-headers' at the end of a 'winnow' pipeline
+  to run dump-headers on the results, rather than having to use shell command
+  substitution like 'dr dump-headers $(dr find ...)'.
+* Vim tags support, and a generation script and 'regenerate-tags' action to go
+  with it. See the Vim section of the README for details.
+
+
 Changes in 1.0.4
 ----------------
 
