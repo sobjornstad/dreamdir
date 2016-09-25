@@ -65,6 +65,8 @@ xwinnow             :: read filenames from stdin and XOR them with
                              UTILITIES
 Utilities perform some other action.
 
+act <search action> :: take <search action> on the list of filenames given on
+                       stdin; useful at the end of a winnow pipeline
 help                :: show this usage message
 header-replace      :: regex search-and-replace on headers; type
                        '$(basename "$0") help header-replace' for info
@@ -173,8 +175,9 @@ dr edit tagged Tags '^cat$'   :: display dreams tagged with 'cat', but not
                                  'caterwaul' or 'dedicate'
 dr fd 006[12]? |              :: display filenames for dreams #610-629 that
   dr winnow tagged Tags 'dog'    also have a tag containing 'dog'
-dr fd t Tags '^cat$' |        :: show dreams that are not tagged exactly 'cat'
-  dr xwinnow grep '\\bcat\\b'      but do use the word 'cat' somewhere else
+dr fd t Tags '^cat$' |        :: show headers of dreams that are not tagged
+  dr xwinnow grep '\\bcat\\b' |    exactly 'cat' but do use the word 'cat'
+  dr act dump-headers            somewhere else
 dr wc                         :: display a word count of all dreams
 dr wc -sl 12 all              :: display a word count of 12 random dreams
 USAGEMSG
@@ -894,7 +897,6 @@ NEWDREAM
     ;;
 
 "winnow"|"w"|"xwinnow"|"x")
-    #TODO: Add arguments to open results in editor or change to find syntax
     if [[ "$action" == "winnow" || "$action" == "w" ]]
     then commparams="-12"
     else commparams="-3"
@@ -1090,6 +1092,13 @@ NEWDREAM
 
 "regenerate-graphs"|"rg")
     scripts/RegeneratePlots.sh ;;
+
+"act"|"a")
+    ensure "! -z \"$1\"" \
+        "Usage: [chain of piped dr commands] | dr act <search action>"
+    input=$(cat <&0)
+    "$0" "$1" $input
+    ;;
 
 "last-lucid"|"ll")
     # shellcheck disable=2046

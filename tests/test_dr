@@ -205,6 +205,11 @@ fn_check() {
     fn_check "6" "$result"
 }
 
+@test "dr act - test finishing a pipeline with act" {
+    result=$(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC | dr act find)
+    fn_check "7" "$result"
+}
+
 @test "dr find misc - test of other search expressions" {
     fn_test "9" grep "extra lucid text"
     fn_test "6" back 4
