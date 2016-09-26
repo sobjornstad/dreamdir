@@ -1,6 +1,5 @@
 #!/usr/bin/env bats
-# vim:set filetype=sh:
-
+# vim:set filetype=sh:set noexpandtab:
 setup() {
     if [ ! -f ./tests/test_dreamdir/.dreamdir ]; then
         echo "Please run tests from the project root."
@@ -205,14 +204,6 @@ fn_check() {
     fn_check "6" "$result"
 }
 
-@test "dr act - test finishing a pipeline with act" {
-    result=$(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC | dr act find)
-    fn_check "7" "$result"
-    # regression test against actions that take arguments
-    result=$(dr filename-display tagged Tags school | dr winnow tagged Places VHS | dr act get-header People)
-    [ "$result" == "MN, OC, TML" ]
-}
-
 @test "dr find misc - test of other search expressions" {
     fn_test "9" grep "extra lucid text"
     fn_test "6" back 4
@@ -237,6 +228,14 @@ fn_check() {
     fn_test "2, 3" -v 1 4-
     fn_test "1, 2, 3" -l 3 all
     # again, no good way to test -s (randomize order)
+}
+
+@test "dr act - test finishing a pipeline with act" {
+    result=$(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC | dr act find)
+    fn_check "7" "$result"
+    # regression test against actions that take arguments
+    result=$(dr filename-display tagged Tags school | dr winnow tagged Places VHS | dr act get-header People)
+    [ "$result" == "MN, OC, TML" ]
 }
 
 @test "dr cat - print specified dreams on stdout" {
@@ -313,6 +312,17 @@ fn_check() {
 	run dr get-header People 1 4 5
 	[ "$output" == "$expected" ]
 	run dr gh People 1 4 5
+	[ "$output" == "$expected" ]
+	# regression test: works correctly with null search-expr
+	expected=$(cat <<-EXPECTED
+	1: Albert Einstein
+	4: Q
+	6: MN, OC, TML
+	7: OC
+	8: M
+	EXPECTED)
+	run dr get-header People
+	[ "$status" == 0 ]
 	[ "$output" == "$expected" ]
 }
 

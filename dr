@@ -917,7 +917,6 @@ NEWDREAM
     #leading 0's, include header name)
     usageMsg="Usage: $(basename "$0") get-header <header> <search-expr>"
     ensure "! -z \"$1\"" "$usageMsg"
-    ensure "! -z \"$2\"" "$usageMsg"
     getHeader=$1
     shift
     dreamfind "$@"
