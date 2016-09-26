@@ -539,7 +539,7 @@ dreamfind() {
             local header="$2"
             local pattern
             pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
-            newargs=$(grep -m 1 "$header:	" $dreamGlob | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            newargs=$(grep -m 1 "$header:	" $dreamGlob | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "[0-9]{5}\.dre:.*$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
 

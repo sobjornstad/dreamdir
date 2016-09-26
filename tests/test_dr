@@ -173,6 +173,8 @@ fn_check() {
     fn_test NOMATCH t Tags '^baz$'
     fn_test NOMATCH t Tags 'o, ba'
     fn_test NOMATCH t Tags 'foo.*baz'
+    # regression test for #16: don't find dream numbers with numeric values
+    fn_test NOMATCH t Tags '8'
 
     # some additional hregex tests
     fn_test "4, 7"    t Tags   'sex'         
