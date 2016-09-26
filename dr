@@ -52,7 +52,7 @@ find                :: show numbers of matching dreams
 filename-display    :: print filenames of matching dreams
 get-header <header> :: print values of header for matching dreams
 header-values [-f] <header> :: show a list of all values used for <header>
-                       in matching dream (include frequency if -f)
+                       in matching dreams (include frequency if -f)
 list-headers [-f]   :: list headers used in at least one matching dream
                        (with frequency if -f specified)
 word-count          :: show word count of the specified dreams, not
