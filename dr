@@ -905,6 +905,11 @@ NEWDREAM
     fi
 
     read -r toFilter
+    [ -z "$toFilter" ] && die "'dr winnow' requires a list of filenames on stdin, usually piped from\n'winnow' or 'filename-display'. (Type 'dr help' for help.)"
+    for i in $toFilter; do
+        [ -f "$i" ] || die "'$i' is not a dream filename.\nDid you forget to start your pipeline with 'filename-display'?\n(Type 'dr help' for help.)"
+    done
+
     dreamfind "$@"
     results=$(comm $commparams <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
     # since comm needs sorted content, we have to reapply the order changes

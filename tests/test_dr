@@ -209,6 +209,11 @@ fn_check() {
     fn_check "7" "$result"
     result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr x tagged People OC))
     fn_check "6" "$result"
+
+    # invalid: start of pipeline must be 'filename-display'
+    run bash -c "dr find tagged Tags sex | dr winnow tagged People Einstein"
+    [ "$status" == 1 ]
+    [[ ${lines[0]} == "'2' is not a dream filename." ]]
 }
 
 @test "dr find misc - test of other search expressions" {
