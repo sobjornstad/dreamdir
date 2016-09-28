@@ -107,9 +107,14 @@ fn_check() {
     local desiredResult="$1"
     local output="$2"
     local numMatches=$(echo "$desiredResult" | wc -w)
-    if [ "$desiredResult" == "NOMATCH" ]
-    then local match="No results."
-    else local match="$numMatches matches: [$desiredResult]" 
+    if [ "$desiredResult" == "NOMATCH" ]; then
+        local match="No results."
+    else
+        if [ "$numMatches" == 1 ]; then
+            local match="$numMatches match: [$desiredResult]" 
+        else
+            local match="$numMatches matches: [$desiredResult]" 
+        fi
     fi
 
     # Replace any backspaced characters in output with nothing, test, and
@@ -230,6 +235,16 @@ fn_check() {
     fn_test "2, 3" -v 1 4-
     fn_test "1, 2, 3" -l 3 all
     # again, no good way to test -s (randomize order)
+}
+
+@test "dr find format - test the format of output from find" {
+    # This is implicitly tested already, but better to make it explicit.
+    run dr find 1
+    [ "$status" == 0 ]
+    [ "$output" == "1 match: [1]" ]
+    run dr find 1 2
+    [ "$status" == 0 ]
+    [ "$output" == "2 matches: [1, 2]" ]
 }
 
 @test "dr act - test finishing a pipeline with act" {

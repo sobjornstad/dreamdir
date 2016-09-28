@@ -889,7 +889,8 @@ NEWDREAM
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(defileify $args)"
-    echo -e "$(echo $results | wc -w) matches: [$results]"
+    numMatches="$(echo $results | wc -w)"
+    echo -e "$numMatches $(numerize $numMatches "match" "matches"): [$results]"
     ;;
 
 "filename-display"|"fd")
