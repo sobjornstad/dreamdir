@@ -269,17 +269,6 @@ die() {
     exit 1
 }
 
-# Don't display the directory stack on push/pop.
-# shellcheck disable=2120
-# :: no arguments ever used - we could want them later
-pushd () {
-    command pushd "$@" > /dev/null
-}
-# shellcheck disable=2120
-popd () {
-    command popd "$@" > /dev/null
-}
-
 # numerize()
 # Display some string in singular or plural as appropriate.
 #
@@ -648,13 +637,8 @@ PYTH_ID_CHECK
 ##### MAIN SCRIPT #####
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
-didpush=0
-# shellcheck disable=2034
-# :: not using this variable now, but it's good to have it here if we need it
-oldpwd="$PWD" # if we need to know where the user is running the script from
 if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
-    didpush=1
-    pushd "$DREAMDIR"
+    cd "$DREAMDIR"
     if [[ $? != 0 ]]; then
         echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
         echo "environment variable is set to an invalid directory"
@@ -951,7 +935,4 @@ NEWDREAM
     ;;
 esac
 
-# shellcheck disable=2119
-# :: we don't want 'popd "$@"', shellcheck.
-[[ $didpush == 1 ]] && popd
 exit 0
