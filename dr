@@ -21,7 +21,7 @@
 
 ##### CONSTANTS #####
 # application version
-MYVERSION="1.0.5"
+MYVERSION="2.0.X-devel"
 
 # matching pattern for dream files
 dreamGlob='[0-9][0-9][0-9][0-9][0-9].dre'
@@ -33,7 +33,7 @@ dreamGlob='[0-9][0-9][0-9][0-9][0-9].dre'
 usagemsg() {
     cat <<USAGEMSG
 dr - Dreamdir utility program
-Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+Copyright (c) 2015-2018 Soren Bjornstad; see LICENSE for details.
 
 Usage: $(basename "$0") <action> [<action arguments>]
 There are two types of actions, searches and utilities.
