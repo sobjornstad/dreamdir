@@ -70,13 +70,9 @@ act <search action> :: take <search action> on the list of filenames given on
 help                :: show this usage message
 header-replace      :: regex search-and-replace on headers; type
                        '$(basename "$0") help header-replace' for info
-last-lucid          :: edit the dream with the highest number that
-                       has a Lucid header
 new                 :: create a new dream with the next available ID
                        number and open it for editing
-regenerate-graphs   :: run scripts/RegeneratePlots.sh to make graphs
 regenerate-tags     :: run scripts/vimtags.py to update the Vim tags list
-stats               :: display dream statistics
 check-validity      :: format sanity check: ensure all dreams have
                        IDs and dates and ID numbers are contiguous
 version             :: print version number of this 'dr'
@@ -649,171 +645,6 @@ PYTH_ID_CHECK
     echo "All tests succeeded."
 }
 
-# stats_display()
-# Calculate and display textual statistics.
-stats_display() {
-    echo "Crunching the latest numbers for you, just a moment..."
-    local colOn='[1;34m'
-    local colOff='[0m'
-
-    local today; local filenamesToday
-    today=$(date '+%Y-%m-%d')
-    filenamesToday=$(grep -l "Date:	$today" $dreamGlob)
-    if [ ! -z "$filenamesToday" ]; then
-        local dreamsToday; local numDreamsToday; local dreamsTodayDisp
-        local lucidsToday; local wordCountToday
-        dreamsToday=$(echo "$filenamesToday" | sed -e 's/\.dre'//g | sed -e 's/ 0*/ /g' | sed -e 's/^0*//') # NOT very clean.
-        numDreamsToday=$(echo "$dreamsToday" | wc -w)
-        dreamsTodayDisp=$(echo $dreamsToday | sed -e 's/ /, /g')
-        # shellcheck disable=2126
-        # :: not an appropriate usage of 'grep -c'
-        lucidsToday=$(grep 'Lucid:	' $filenamesToday | wc -l)
-        wordCountToday=$(drwordcount "t" $filenamesToday | cut -d ' ' -f 4)
-    fi
-
-    local numDreams; local wordCount; local avgWordCount; local dateStats
-    numDreams=$(find $dreamGlob | wc -l)
-    wordCount=$(drwordcount "t" $dreamGlob | cut -d ' ' -f 4)
-    avgWordCount=$((wordCount / numDreams))
-    dateStats=$(python2 <<PYTH_DATEFREQ
-# OUTPUT FORMAT:
-# <number of dates recorded> <earliest date> <latest date> <date with most dreams> <how many that was>
-import scripts.ddirparse as dp
-dp.setDreamdir("$PWD")
-dateattrs = dp.getAttribForAllDreams('Date')
-dates = [i.split('\t')[1] for i in dateattrs.values()]
-freqs = {}
-for date in dates:
-    freqs[date] = freqs.get(date, 0) + 1
-keyList = freqs.keys()
-print len(keyList),
-print min(keyList),
-print max(keyList),
-# create list of keys sorted by the order of their values, min to max
-byFreq = sorted(keyList, cmp=lambda a,b: cmp(freqs[a],freqs[b]))
-print byFreq[-1],       # most number of dreams
-print freqs[byFreq[-1]] # how many?
-PYTH_DATEFREQ
-)
-    local mostWordsDay
-    mostWordsDay=$(python2 <<PYTH_MOSTWORDS
-# Getting acceptable performance here requires unfolding some possible
-# functions and abstractions into this (nevertheless simple enough) loop.
-import scripts.ddirparse as dp
-wcsId = {}
-wcsDate = {}
-for f in dp.allDreamfiles():
-    date = None
-    id = None
-    counting = False
-    for line in f:
-        textline = line.strip()
-        if textline.startswith('Id:\t'):
-            id = textline.split(':\t')[1].strip()
-        elif textline.startswith('Date:\t'):
-            date = textline.split(':\t')[1].strip()
-        elif not textline:
-            break
-    if id is None or date is None:
-        print "ERROR: Missing date in dream %s!" % f.name
-        assert False
-    thisWc = dp.getCount([f.name])['total']
-    wcsId[id] = thisWc
-    wcsDate[date] = wcsDate.get(date, 0) + thisWc
-
-# create list of keys sorted by the order of their values, max to min
-wcOrder = sorted(wcsDate.keys(), cmp=lambda a,b: cmp(wcsDate[b],wcsDate[a]))
-print wcOrder[0], wcsDate[wcOrder[0]], # word count, date of it
-print len(dp.getDreamsTagged('Date', wcOrder[0])), # how many dreams
-
-# and for the individual dreams
-wcNumOrder = sorted(wcsId.keys(), cmp=lambda a,b: cmp(wcsId[b],wcsId[a]))
-print wcNumOrder[0], wcsId[wcNumOrder[0]] # ID num, num words in it
-PYTH_MOSTWORDS
-)
-    local datesRecorded; local avgDreamsPerDay; local avgWordCountDay
-    local earliestDate; local latestDate; local mostDreamsDate; local numMostDreams
-    datesRecorded=$(echo "$dateStats" | cut -d ' ' -f 1)
-    avgDreamsPerDay=$(echo "scale=2; $numDreams / $datesRecorded" | bc -q)
-    avgWordCountDay=$(echo "$avgDreamsPerDay * $avgWordCount" | bc -q)
-    earliestDate=$(echo "$dateStats" | cut -d ' ' -f 2)
-    latestDate=$(echo "$dateStats" | cut -d ' ' -f 3)
-    mostDreamsDate=$(echo "$dateStats" | cut -d ' ' -f 4)
-    numMostDreams=$(echo "$dateStats" | cut -d ' ' -f 5)
-
-    local mostWordsOnDay; local mostWords; local dreamsInMostWordsDay
-    local mostWordsDreamNum; local mostWordsDreamCount
-    mostWordsOnDay=$(echo "$mostWordsDay" | cut -d ' ' -f 1)
-    mostWords=$(echo "$mostWordsDay" | cut -d ' ' -f 2)
-    dreamsInMostWordsDay=$(echo "$mostWordsDay" | cut -d ' ' -f 3)
-    mostWordsDreamNum=$(echo "$mostWordsDay" | cut -d ' ' -f 4 | sed -e 's/^0*\(.*\)/\1/')
-    mostWordsDreamCount=$(echo "$mostWordsDay" | cut -d ' ' -f 5)
-
-    local lucidFilenames; local numLucids; local percentLucid
-    local totalLucidWordCount; local avgLucidWordCount; local percentLucidWordCount
-    local daysRecordedLds; local percentDaysRecordedLds
-    lucidFilenames=$(grep -l 'Lucid:	' $dreamGlob)
-    numLucids=$(echo $lucidFilenames | wc -w)
-    percentLucid=$(echo "scale=2; 100 * $numLucids / $numDreams" | bc -q)
-    totalLucidWordCount=$(drwordcount "t" $lucidFilenames | cut -d ' ' -f 4)
-    avgLucidWordCount=$((totalLucidWordCount / numLucids))
-    percentLucidWordCount=$(echo "scale=2; 100 * $totalLucidWordCount / $wordCount" | bc -q)
-    daysRecordedLds=$(python2 <<PYTH_DAYS_LDS
-# Output format: <days with recorded LDs>
-import scripts.ddirparse as dp
-dp.setDreamdir("$PWD")
-lucids = dp.getDreamsTagged('Lucid', '')
-allDates = dp.getAttribForAllDreams('Date')
-allDates = {k: v.split('\t')[1] for k,v in allDates.iteritems()}
-# Use a dictionary to make future expansion to frequency, etc., easier
-lucidDays = {}
-for i in lucids:
-    lucidDays[allDates[i]] = lucidDays.get(allDates[i], 0) + 1
-print len(lucidDays)
-PYTH_DAYS_LDS
-)
-    percentDaysRecordedLds=$(echo "scale=2; 100 * $daysRecordedLds / $datesRecorded" | bc -q)
-
-echo -e "${colOn}Today$colOff"
-echo -e "Today: $today"
-if [ -z "$filenamesToday" ]; then
-    echo -e "No dreams recorded today.\n"
-else
-    echo -e "Dreams recorded today: $numDreamsToday ($dreamsTodayDisp)"
-    echo -e "Lucid dreams recorded today: $lucidsToday"
-    echo -e "Total word count today: $wordCountToday\n"
-fi
-cat <<STATS_DISP
-${colOn}Recall and recording$colOff
-Total dreams: $numDreams
-Days with recorded dreams: $datesRecorded
-Average dreams per recorded day: $avgDreamsPerDay
-Date range: $earliestDate – $latestDate
-Day with most dreams: $mostDreamsDate ($numMostDreams)
-Total word count: $wordCount
-Average words per dream: $avgWordCount
-Day with highest word count: $mostWordsOnDay ($mostWords words over $dreamsInMostWordsDay $(numerize "$dreamsInMostWordsDay" "dream"))
-Single dream with highest word count: #$mostWordsDreamNum ($mostWordsDreamCount words)
-
-${colOn}Lucidity$colOff
-Total lucid dreams: $numLucids
-Percentage lucid: $percentLucid%
-Days with recorded LDs: $daysRecordedLds
-Percentage recorded days with at least one LD: $percentDaysRecordedLds%
-Total lucid word count: $totalLucidWordCount
-Average words per lucid dream: $avgLucidWordCount
-Percentage of words in lucid dreams: $percentLucidWordCount%
-
-${colOn}Table summary${colOff}
-		Total	Avg/Day	Max/Day	Today
-# of dreams	$numDreams	$avgDreamsPerDay	$numMostDreams	$numDreamsToday
-Word count	$wordCount	$avgWordCountDay	$mostWords	$wordCountToday
-
-See also 'dr list-headers -f' and 'dr header-values -f [header]'.
-STATS_DISP
-}
-
-
 ##### MAIN SCRIPT #####
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
@@ -1093,12 +924,6 @@ NEWDREAM
     drwordcount "p" "$args"
     ;;
 
-"stats"|"s")
-    stats_display ;;
-
-"regenerate-graphs"|"rg")
-    scripts/RegeneratePlots.sh ;;
-
 "regenerate-tags"|"rt")
     scripts/vimtags.py ;;
 
@@ -1108,11 +933,6 @@ NEWDREAM
     input=$(cat <&0)
     "$0" "$@" $input
     ;;
-
-"last-lucid"|"ll")
-    # shellcheck disable=2046
-    # :: word splitting on the grep is correct
-    "$EDITOR" $(grep -l 'Lucid:	' $dreamGlob | tail -n 1) ;;
 
 "become-lucid"|"bl")
     echo "Nice try." ;;
