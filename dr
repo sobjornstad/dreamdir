@@ -233,12 +233,16 @@ USAGEMSG
 
 ##### UTILITY FUNCTIONS #####
 # die()
-# Print arguments to stderr and exit the shell with the last exit code.
+# Print arguments to stderr and exit the shell with the last exit code
+# (or 1 if the last exit code is 0).
 #
 # Arguments:
 #     $1 - Message to complain with.
 die() {
     ret=$?
+    if [ $ret -eq 0 ]; then
+        ret=1
+    fi
     printf "%s\n" "$@" >&2
     exit $ret
 }
