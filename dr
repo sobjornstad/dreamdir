@@ -58,8 +58,6 @@ word-count          :: show word count of the specified dreams, not
                        including headers
 winnow              :: read filenames from stdin and AND them with
                        the results of another query
-xwinnow             :: read filenames from stdin and XOR them with
-                       the results of another query
 
                              UTILITIES
 Utilities perform some other action.
@@ -169,11 +167,9 @@ dr filename-display random 5  :: list the filenames of five random dreams
 dr find tagged People Maud    :: edit dreams in which Maud appeared
 dr edit tagged Tags '^cat$'   :: display dreams tagged with 'cat', but not
                                  'caterwaul' or 'dedicate'
-dr fd 006[12]? |              :: display filenames for dreams #610-629 that
-  dr winnow tagged Tags 'dog'    also have a tag containing 'dog'
-dr fd t Tags '^cat$' |        :: show headers of dreams that are not tagged
-  dr xwinnow grep '\\bcat\\b' |    exactly 'cat' but do use the word 'cat'
-  dr act dump-headers            somewhere else
+dr filename-display 610-629 | :: see a list of all the places used in dreams
+  dr winnow t Tags 'dog' |       #610-629 that have a tag containing the
+  dr act header-values Places    substring 'dog'
 dr wc                         :: display a word count of all dreams
 dr wc -sl 12 all              :: display a word count of 12 random dreams
 USAGEMSG
@@ -243,7 +239,7 @@ die() {
     if [ $ret -eq 0 ]; then
         ret=1
     fi
-    printf "%s\n" "$@" >&2
+    printf "%b\n" "$@" >&2
     exit $ret
 }
 
@@ -674,12 +670,7 @@ NEWDREAM
     echo "$args"
     ;;
 
-"winnow"|"w"|"xwinnow"|"x")
-    if [[ "$action" == "winnow" || "$action" == "w" ]]
-    then commparams="-12"
-    else commparams="-3"
-    fi
-
+"winnow"|"w")
     read -r toFilter
     [ -z "$toFilter" ] && die "'dr winnow' requires a list of filenames on stdin, usually piped from\n'winnow' or 'filename-display'. (Type 'dr help' for help.)"
     for i in $toFilter; do
@@ -687,7 +678,7 @@ NEWDREAM
     done
 
     dreamfind "$@"
-    results=$(comm $commparams <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
+    results=$(comm -12 <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
     # since comm needs sorted content, we have to reapply the order changes
     [ $df_doReverse == 1 ] && results=$(echo "$results" | tac)
     [ $df_doShuf == 1 ]    && results=$(echo "$results" | shuf)
