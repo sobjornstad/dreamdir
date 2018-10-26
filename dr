@@ -572,40 +572,24 @@ validate_dreamdir() {
         rm "$tempfile"
         exit 1
     fi
-    rm "$tempfile"
 
     # check for ID continuity
-    # works with Python 2 & 3 -- check dual compatibility after changes
-    python <<PYTH_ID_CHECK
-import os, sys
-listing = sorted(os.listdir('.'))
-listing = filter(lambda i: i.endswith('.dre'), listing)
-nums = []
-for i in listing:
-    try:
-        nums.append(int(i))
-    except ValueError:
-        # not a dream file, but auxiliary of some kind
-        continue
-
-lastnum = 0
-for i in nums:
-    if i != lastnum+1:
-        print("ID continuity check...FAIL")
-        print("Failure was on ID %i, not continuous with previous ID %i." % (
-              i, lastnum))
-        sys.exit(1)
-    else:
-        lastnum = i
-print("ID continuity check...OK")
-sys.exit(0)
-PYTH_ID_CHECK
-    if [ $? != 0 ]; then
+    checkFailedFor="$(sed -re 's|\./([0-9]{5})\.dre|\1|' < "$tempfile" |
+        awk 'BEGIN { var = 1; } { if (var != $1+0) print $1; var++; }')" 
+    if [ -z "$checkFailedFor" ]; then
+        echo "ID continuity...OK"
+    else
+        echo "ID continuity...FAILED"
+        echo "A number was skipped before the following files:"
+        echo "$checkFailedFor"
+        rm "$tempfile"
         exit 1
     fi
 
+    rm "$tempfile"
     echo "All tests succeeded."
 }
+
 
 ##### MAIN SCRIPT #####
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
