@@ -233,40 +233,15 @@ USAGEMSG
 
 
 ##### UTILITY FUNCTIONS #####
-# ensure()
-# Make sure a condition necessary for script execution is true.
-#
-# Arguments:
-#     $1 - an argument to `test`
-#     $2 - a message to display if the test fails
-#     $3 - (optional, default 1) exit status to return if the test fails
-# State change & return:
-#     If the test evaluates non-zero, the script prints $2 and exits with
-#     status $3 (or 1). Else, control returns to the caller.
-ensure() {
-    eval "test $1"
-    if [ $? -ne 0 ]
-    then
-        if [ -z "$3" ]; then
-            local exitval=1
-        else
-            local exitval=$3
-        fi
-        echo -e "$2"
-        exit "$exitval"
-    else
-        return 0
-    fi
-}
-
 # die()
-# Unconditionally exit the shell with status 1 after printing the given error.
+# Print arguments to stderr and exit the shell with the last exit code.
 #
 # Arguments:
 #     $1 - Message to complain with.
 die() {
-    echo -e "$1"
-    exit 1
+    ret=$?
+    printf "%s\n" "$@" >&2
+    exit $ret
 }
 
 # numerize()
@@ -282,8 +257,8 @@ die() {
 # I think there is 1 foo here.
 # I think there are 2 foos here.
 numerize() {
-    ensure "! -z \"$1\"" "Invalid arguments given to numerize()"
-    ensure "! -z \"$2\"" "Invalid arguments given to numerize()"
+    [ -n "$1" ] || die "Invalid arguments given to numerize()"
+    [ -n "$2" ] || die "Invalid arguments given to numerize()"
     local num=$1
     local singular=$2
     if [ -z "$3" ]; then
@@ -357,7 +332,7 @@ colorify() {
 # $ echo "Filename list: $(getrange 4-8)"
 # 00004.dre 00005.dre 00006.dre 00007.dre 00008.dre
 getrange() {
-    ensure "! -z \"$1\"" "Invalid arguments given to getrange()"
+    [ -n "$1" ] || "Invalid arguments given to getrange()"
     local startat; local endat
     startat=$(echo "$1" | cut -d '@' -f 1)
     endat=$(echo "$1" | cut -d '@' -f 2)
@@ -369,8 +344,8 @@ getrange() {
         dreamfind last
         endat=$(defileify $args)
     fi
-    ensure "! -z \"$startat\"" "No results."
-    ensure "! -z \"$endat\"" "No results."
+    [ -n "$startat" ] || die "No results."
+    [ -n "$endat" ] || die "No results."
     seq -f '%05g.dre' "$startat" "$endat"
 }
 
@@ -494,7 +469,7 @@ dreamfind() {
             ;;
         
         "grep"|"g")
-            ensure "! -z \"$2\"" "'grep' needs a pattern. (See 'dr help search' for help.)"
+            [ -n "$2" ] || die "'grep' needs a pattern. (See 'dr help search' for help.)"
             newargs=$(grep -El "$2" $dreamGlob)
             shift
             ;;
@@ -515,8 +490,8 @@ dreamfind() {
 
         "tagged"|"t")
             local usage="Usage: dr $action tagged <header regex> <value regex>"
-            ensure "! -z \"$2\"" "$usage"
-            ensure "! -z \"$3\"" "$usage"
+            [ -n "$2" ] || die "$usage"
+            [ -n "$3" ] || die "$usage"
             # The idea here is to replace the delimiters with '@@@@@' (which we
             # can fairly safely assume will not show up in a tag), then change
             # the user's regex to match '@@@@@' as BOL/EOL and not cross it
@@ -559,17 +534,16 @@ dreamfind() {
     [ -z "$args" ] && die "No results."
     for i in $args
     do
-        ensure "-f \"$i\"" "Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
+        [ -f "$i" ] || die "Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
     done
 }
 
 # validate_dreamdir()
-# Check to see if our dreamdir's format is okay. Extracted from the main case
-# statement purely because it's long and makes the script harder to read.
+# Check to see if our dreamdir's format is okay.
 validate_dreamdir() {
     # set up temp file for checking id and date headers
     local tempfile="/tmp/dreamgrep" # contains list of dream files
-    ensure "! -e $tempfile" "Please check & remove existing temp file $tempfile and try again."
+    [ ! -e $tempfile ] || die "Please check & remove existing temp file $tempfile and try again."
     find $dreamGlob | sort > "$tempfile"
 
     # check for id problems
@@ -648,8 +622,7 @@ if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
 fi
 
 # Confirm that we've ended up in a dreamdir.
-ensure '-f .dreamdir' "Please run this script from a dreamdir, or set the environment
-variable \$DREAMDIR to the path to your dreamdir."
+[ -f .dreamdir ] || die "Please run this script from a dreamdir, or set the environment variable \$DREAMDIR to the path to your dreamdir."
 
 # Figure out what action we're going to do and jump to appropriate code.
 [ -z "$1" ] && usagemsg
@@ -660,7 +633,7 @@ case "$action" in
 "new"|"n")
     today=$(date '+%Y-%m-%d')
     lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
-    ensure "-f $lastNum.dre" "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
+    [ -f $lastNum.dre ] || die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
     let newNum=10#$lastNum+1
     printf -v newNum '%05d' "$newNum"
 
@@ -737,7 +710,7 @@ NEWDREAM
     #TODO: Possibility of formatting options (filename or number, remove
     #leading 0's, include header name)
     usageMsg="Usage: $(basename "$0") get-header <header> <search-expr>"
-    ensure "! -z \"$1\"" "$usageMsg"
+    [ -n "$1" ] || die "$usageMsg"
     getHeader=$1
     shift
     dreamfind "$@"
@@ -803,8 +776,7 @@ NEWDREAM
     else
         showfreq=0
     fi
-    ensure "! -z \"$1\"" \
-        "Please specify a header type, like '$(basename "$0") header-values Tags'."
+    [ -n "$1" ] || die "Please specify a header type, like '$(basename "$0") header-values Tags'."
     header="$1"
     shift
     dreamfind "$@"
@@ -819,10 +791,9 @@ NEWDREAM
 
 "header-replace"|"hr")
     usageMsg="Usage: $(basename "$0") header-replace [-f] <header> <search> <replace> <search-expr>\nType 'dr help header-replace' for details."
-    ensure "! -z \"$1\"" "$usageMsg"
-    ensure "! -z \"$2\"" "$usageMsg"
-    ensure "! -z \"$3\"" "$usageMsg"
-    [[ "$2" =~ "@" || "$3" =~ "@" ]] && \
+    [ -n "$1" ] || die "$usageMsg"
+    [ -n "$2" ] || die "$usageMsg"
+    [ -n "$3" ] || die "$usageMsg"
         die "Sorry, at-signs (@) are not valid in search/replace regexes."
 
     if [ "$1" == "-f" ]; then
@@ -912,8 +883,7 @@ NEWDREAM
     scripts/vimtags.py ;;
 
 "act"|"a")
-    ensure "! -z \"$1\"" \
-        "Usage: [chain of piped dr commands] | dr act <search action>"
+    [ -n "$1" ] || die "Usage: [chain of piped dr commands] | dr act <search action>"
     input=$(cat <&0)
     "$0" "$@" $input
     ;;
