@@ -6,8 +6,10 @@ shellcheck dr || exit 1
 echo "OK"
 
 # requires BATS: https://github.com/sstephenson/bats
+# set CDPATH to nothing to work around a strange issue:
+#     https://github.com/sstephenson/bats/issues/104
 echo "Running tests..."
-tests/test_dr || exit 1
+CDPATH='' tests/test_dr || exit 1
 echo "OK"
 
 # requires GCC or equivalent compiler with c99 support

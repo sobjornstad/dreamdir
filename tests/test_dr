@@ -29,7 +29,8 @@ AWKSCRIPT
 )
 
 helptest() {
-    run $1
+    # IFS seems to be set so you can't split args like this by default
+    IFS=' ' run $1
     local awkcode=$(echo "$MESSAGE_EXTRACTOR_AWK" | sed -e "s/FN_NAME/$2/")
     local result=$(awk "$awkcode" < dr | sed -e 's/$(basename "$0")/dr/' | sed -e 's/\\\\/\\/g' | sed -e 's/\\\$/$/g')
     diff <(echo "$result") <(echo "$output")
@@ -55,11 +56,15 @@ helptest() {
 	Id:	00010
 	Date:	$(date '+%Y-%m-%d')
 	Time:	
+	Title:	
+	People:	
+	Places:	
 	Tags:	
-	
+
 
 	Deleting unmodified dream file.
-	EXPECTED)
+	EXPECTED
+    )
 	EDITOR='cat' run dr new
 	[ "$status" == 0 ]
 	[ "$output" == "$expected" ]
@@ -76,14 +81,7 @@ helptest() {
 	[ "$output" == "dr version $expected_ver" ]
 }
 
-@test "dr last-lucid - legacy way to edit the last lucid dream" {
-	EDITOR=cat run dr last-lucid
-	[ "${lines[0]}" == "Id:	00009" ]
-	EDITOR=cat run dr ll
-	[ "${lines[0]}" == "Id:	00009" ]
-}
-
-# Still to test: header-replace, regenerate-graphs, stats, validate
+# Still to test: header-replace, validate
 
 
 ##### SEARCHES #####
@@ -157,11 +155,14 @@ fn_check() {
     # NOMATCH doesn't work since we have a different error message condition
     # || true: this returns 1 and BATS will get mad if anything returns nonzero
     # Take this opportunity to test the short version of the 'find' command.
-    result=$(dr f '[025]*[12]0') || true
+    result=$(dr f '[025]*[12]0' 2>&1) || true
     expected=$(cat <<-EXPECTED
 	Matched nonexistent file '[025]*[12]0.dre'; please check your search terms and try again.
 	(Type 'dr help search' for help.)
-	EXPECTED)
+	EXPECTED
+    )
+    echo "$expected" > /tmp/test1
+    echo "$result" > /tmp/test2
     [ "$result" == "$expected" ]
 }
 
@@ -201,19 +202,15 @@ fn_check() {
     # winnow / piping
     result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC))
     fn_check "7" "$result"
-    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr xwinnow tagged People OC))
-    fn_check "6" "$result"
 
-    # short forms
+    # short form
     result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr w tagged People OC))
     fn_check "7" "$result"
-    result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr x tagged People OC))
-    fn_check "6" "$result"
 
     # invalid: start of pipeline must be 'filename-display'
     run bash -c "dr find tagged Tags sex | dr winnow tagged People Einstein"
     [ "$status" == 1 ]
-    [[ ${lines[0]} == "'2' is not a dream filename." ]]
+    [[ ${lines[0]} =~ "'2' is not a dream filename." ]]
 }
 
 @test "dr find misc - test of other search expressions" {
