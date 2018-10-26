@@ -1,22 +1,21 @@
 #!/bin/bash
-# shellcheck disable=2086
-# shellcheck disable=2001
+# shellcheck disable=SC2086,SC1117
 
 # %%% dr - Dreamdir utility program
-# Copyright (c) 2015-2016 Soren Bjornstad; see LICENSE for details.
+# Copyright (c) 2015-2018 Soren Bjornstad; see LICENSE for details.
 
 ##### NOTES ON SHELLCHECK DIRECTIVES #####
 # (For some stupid reason there can't be other comments between the shebang and
 # the disable directives.)
+# 1117: As stated on the official wiki page, this warning has been disabled in
+#   the next release "due to being too pedantic".
 # 2086: Turn off checks for variable quoting.
 #   It's really too bad this has to be turned off, because it catches places
 #   where variables really should have been quoted but were not. Unfortunately,
 #   it flags passing around command-line arguments and lists of files like
 #   "grep 'pattern' $dreamGlob" as errors, and as such produces a heap of
-#   irrelevant warnings in this script.
-# 2001: Turn off checks for using 'sed' instead of shell internal replacement.
-#   All the situations it flagged were either too complicated or weren't a good
-#   choice for some other reason.
+#   irrelevant warnings in this script. We could switch to using arrays
+#   sometime in the future.
 
 
 ##### CONSTANTS #####
@@ -419,7 +418,7 @@ dreamfind() {
     local limit=0
     local invert=0
     OPTIND=0  # if loop doesn't run at all, we need to make sure it's reset
-    while getopts rsl:v opt; do
+    while getopts :rsl:v opt; do
         case $opt in
         r)
             df_doReverse=1 ;;
@@ -431,6 +430,8 @@ dreamfind() {
             ;;
         v)
             invert=1 ;;
+        *)
+            die "Invalid option (-rslv are valid; see 'dr help search')."
         esac
     done
     shift $((OPTIND-1))
@@ -449,7 +450,7 @@ dreamfind() {
     while [ ! -z "$1" ]
     do
         if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
-            let local num=10#$1  # in case user uses leading zeroes
+            local num=$((10#$1))
             printf -v newargs '%05d.dre' "$num"
         elif [[ $1 =~ ^[0-9]*@[0-9]*$ ]]; then
             newargs=$(getrange "$1")
@@ -544,15 +545,14 @@ validate_dreamdir() {
     # set up temp file for checking id and date headers
     local tempfile="/tmp/dreamgrep" # contains list of dream files
     [ ! -e $tempfile ] || die "Please check & remove existing temp file $tempfile and try again."
-    find $dreamGlob | sort > "$tempfile"
+    find . -maxdepth 1 -name "$dreamGlob" | sort | cut -c 3- > "$tempfile"
 
     # check for id problems
     local checkFailedFor
-    checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile")
-    if [ $? == 0 ]; then
+    if checkFailedFor=$(grep -l 'Id:	[0-9]\{5\}' $dreamGlob | sort | diff - "$tempfile"); then
         echo "ID value check...OK"
     else
-        echo "ID value check...FAIL"
+        echo "ID value check...FAILED"
         echo "The files listed in the following diff have missing or incomplete"
         echo "Id headers:"
         echo "$checkFailedFor"
@@ -561,11 +561,10 @@ validate_dreamdir() {
     fi
 
     # check for date problems (similar -- consider a function)
-    checkFailedFor=$(grep -l 'Date:	[12][901][0-9]\{2\}-[01][0-9]-[0123][0-9]' $dreamGlob | sort | diff - "$tempfile")
-    if [ $? == 0 ]; then
+    if checkFailedFor=$(grep -l 'Date:	[12][901][0-9]\{2\}-[01][0-9]-[0123][0-9]' $dreamGlob | sort | diff - "$tempfile"); then
         echo "Date check...OK"
     else
-        echo "Date check...FAIL"
+        echo "Date check...FAILED"
         echo "The files listed in the following diff have missing or invalid"
         echo "Date headers, or represent implausible or impossible dates."
         echo "(Note: dates must be in YYYY-MM-DD format.)"
@@ -612,8 +611,7 @@ PYTH_ID_CHECK
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
 if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
-    cd "$DREAMDIR"
-    if [[ $? != 0 ]]; then
+    if ! cd "$DREAMDIR"; then
         echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
         echo "environment variable is set to an invalid directory"
         echo "($DREAMDIR). Exiting."
@@ -634,7 +632,7 @@ case "$action" in
     today=$(date '+%Y-%m-%d')
     lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
     [ -f $lastNum.dre ] || die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
-    let newNum=10#$lastNum+1
+    newNum=$((10#$lastNum + 1))
     printf -v newNum '%05d' "$newNum"
 
     # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
@@ -661,8 +659,7 @@ NEWDREAM
     else
         "$EDITOR" "$newNum.dre"
     fi
-    diff "/tmp/$newNum.dre" "$newNum.dre" > /dev/null 2>&1
-    if [ $? == 0 ]; then
+    if diff "/tmp/$newNum.dre" "$newNum.dre" > /dev/null 2>&1; then
         echo "Deleting unmodified dream file."
         rm "$newNum.dre"
     else
@@ -673,7 +670,7 @@ NEWDREAM
 
 "edit"|"e")
     dreamfind "$@"
-    $EDITOR $args
+    "$EDITOR" $args
     ;;
 
 "find"|"f")
@@ -797,6 +794,7 @@ NEWDREAM
     [ -n "$1" ] || die "$usageMsg"
     [ -n "$2" ] || die "$usageMsg"
     [ -n "$3" ] || die "$usageMsg"
+    [[ "$2" =~ @ || "$3" =~ @ ]] && \
         die "Sorry, at-signs (@) are not valid in search/replace regexes."
 
     if [ "$1" == "-f" ]; then
