@@ -540,6 +540,50 @@ dreamfind() {
     done
 }
 
+# newdream()
+# Create a new dream file with the next unused number and a default template
+# and open it in the user's editor.
+newdream() {
+    local today; local lastNum; local newNum
+    today=$(date '+%Y-%m-%d')
+    lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
+    [ -f $lastNum.dre ] || die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
+    newNum=$((10#$lastNum + 1))
+    printf -v newNum '%05d' "$newNum"
+
+    # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
+    ed <<NEWDREAM >/dev/null 2>&1
+i
+Id:	$newNum
+Date:	$today
+Time:	
+Title:	
+People:	
+Places:	
+Tags:	
+
+
+.
+w $newNum.dre
+w /tmp/$newNum.dre
+q
+NEWDREAM
+
+    if [ "$EDITOR" == "vim" ]; then
+        # use vim's option to place the cursor on the last line
+        vim "$newNum.dre" +
+    else
+        "$EDITOR" "$newNum.dre"
+    fi
+    if diff "/tmp/$newNum.dre" "$newNum.dre" > /dev/null 2>&1; then
+        echo "Deleting unmodified dream file."
+        rm "$newNum.dre"
+    else
+        chmod 600 "$newNum.dre" # dreams default to 600 for basic privacy
+    fi
+    rm "/tmp/$newNum.dre"
+}
+
 # validate_dreamdir()
 # Check to see if our dreamdir's format is okay.
 validate_dreamdir() {
@@ -614,43 +658,7 @@ shift # arguments to actions start at $1
 
 case "$action" in
 "new"|"n")
-    today=$(date '+%Y-%m-%d')
-    lastNum=$(find $dreamGlob | sort | tail -n 1 | cut -c 1-5)
-    [ -f $lastNum.dre ] || die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
-    newNum=$((10#$lastNum + 1))
-    printf -v newNum '%05d' "$newNum"
-
-    # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
-    ed <<NEWDREAM >/dev/null 2>&1
-i
-Id:	$newNum
-Date:	$today
-Time:	
-Title:	
-People:	
-Places:	
-Tags:	
-
-
-.
-w $newNum.dre
-w /tmp/$newNum.dre
-q
-NEWDREAM
-
-    if [ "$EDITOR" == "vim" ]; then
-        # use vim's option to place the cursor on the last line
-        vim "$newNum.dre" +
-    else
-        "$EDITOR" "$newNum.dre"
-    fi
-    if diff "/tmp/$newNum.dre" "$newNum.dre" > /dev/null 2>&1; then
-        echo "Deleting unmodified dream file."
-        rm "$newNum.dre"
-    else
-        chmod 600 "$newNum.dre" # dreams default to 600 for basic privacy
-    fi
-    rm "/tmp/$newNum.dre"
+    newdream
     ;;
 
 "edit"|"e")
