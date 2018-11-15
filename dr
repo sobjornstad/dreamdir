@@ -447,8 +447,7 @@ dreamfind() {
     args=""
     local newargs=""
     local howMany=0
-    while [ ! -z "$1" ]
-    do
+    while [ ! -z "$1" ]; do
         if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
             local num=$((10#$1))
             printf -v newargs '%05d.dre' "$num"
@@ -499,13 +498,16 @@ dreamfind() {
             # with '.'.
             local header="$2"
             local pattern
-            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' | sed -e 's/\$/[$@]/' | sed -e 's/\./[^@]/')
-            newargs=$(grep -m 1 "$header:	" $dreamGlob | sed -e "s/$header:	/@@@@@/" | sed -e 's/, /@@@@@/g' | sed -e 's/$/@@@@@/' | grep -E "[0-9]{5}\.dre:.*$pattern" | sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/')
+            newargs=$(grep -m 1 "$header:	" $dreamGlob |
+                sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
+                grep -E "[0-9]{5}\.dre:.*$pattern" |
+                sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             shift; shift
             ;;
 
         *) # filename glob
-            if echo "$1" | grep -q ".dre"; then
+            if [[ $1 == *".dre" ]]; then
                 newargs="$1"
             else
                 newargs="$1.dre"
@@ -525,16 +527,15 @@ dreamfind() {
     # :: We *don't* want $args to be quoted -- we're doing this to expand globs.
     args=$(echo $args | cat -)
     if [ $invert -eq 1 ]; then
-        args=$(comm -3 <(find $dreamGlob | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
+        args=$(comm -3 <(find $dreamGlob | tr ' ' '\n' | sort) <(tr ' ' '\n' <<<"$args" | sort))
     fi
-    [ $df_doReverse -eq 1 ] && args=$(echo "$args" | tr ' ' '\n' | tac)
-    [ $df_doShuf -eq 1 ]    && args=$(echo "$args" | tr ' ' '\n' | shuf)
-    [ $limit -ne 0 ]        && args=$(echo "$args" | tr ' ' '\n' | head -n $limit)
+    [ $df_doReverse -eq 1 ] && args=$(tr ' ' '\n' <<<"$args" | tac)
+    [ $df_doShuf -eq 1 ]    && args=$(tr ' ' '\n' <<<"$args"  | shuf)
+    [ $limit -ne 0 ]        && args=$(tr ' ' '\n' <<<"$args"  | head -n $limit)
 
     # sanity check
     [ -z "$args" ] && die "No results."
-    for i in $args
-    do
+    for i in $args; do
         [ -f "$i" ] || die "Matched nonexistent file '$i'; please check your search terms and try again.\n(Type 'dr help search' for help.)"
     done
 }
