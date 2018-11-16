@@ -280,7 +280,7 @@ numerize() {
 # Arguments:
 # (variable number) - the files to process
 defileify() {
-    echo "$@" | sed -e 's/\(^\| \)00*/\1/g' | sed -e 's/\.dre/,/g' | sed -e 's/,$//'
+    sed -e 's/\(^\| \)00*/\1/g' -e 's/\.dre/,/g' -e 's/,$//' <<<"$@"
 }
 
 # colorify()
@@ -300,7 +300,7 @@ readonly COL_HEADERS; readonly COL_LUCID; readonly COL_NOTES; readonly COL_VERBA
 colorify() {
     # escape quotes and newlines so we can plop this into a Python string
 	local txt
-	txt=$(echo "$1" | sed -e 's/"/\\"/g' | perl -pe 's/\n/\\n/g')
+	txt=$(sed -e 's/"/\\"/g' <<<"$1" | perl -pe 's/\n/\\n/g')
 	python2 <<-END
 	# -*- coding: utf-8 -*-
 	from scripts.ddirparse import strHighlight
@@ -334,8 +334,8 @@ colorify() {
 getrange() {
     [ -n "$1" ] || "Invalid arguments given to getrange()"
     local startat; local endat
-    startat=$(echo "$1" | cut -d '@' -f 1)
-    endat=$(echo "$1" | cut -d '@' -f 2)
+    startat=$(cut -d '@' -f 1 <<<"$1")
+    endat=$(cut -d '@' -f 2 <<<"$1")
     if [ -z "$startat" ]; then
         dreamfind 1
         startat=$(defileify $args)
@@ -465,7 +465,7 @@ dreamfind() {
             fi
             newargs=$(find $DREAMGLOB | tail -n "$howMany")
             if [[ "$action" == "back" || "$action" == "b" ]]; then
-                newargs=$(echo "$newargs" | head -n 1)
+                newargs=$(head -n 1 <<<"$newargs")
             fi
             ;;
         
@@ -499,7 +499,7 @@ dreamfind() {
             # with '.'.
             local header="$2"
             local pattern
-            pattern=$(echo "$3" | sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/')
+            pattern=$(sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/' <<<"$3")
             newargs=$(grep -m 1 "$header:	" $DREAMGLOB |
                 sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
                 grep -E "[0-9]{5}\.dre:.*$pattern" |
@@ -671,7 +671,7 @@ case "$action" in
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(defileify $args)"
-    numMatches="$(echo $results | wc -w)"
+    numMatches="$(wc -w <<<"$results")"
     echo -e "$numMatches $(numerize $numMatches "match" "matches"): [$results]"
     ;;
 
@@ -688,10 +688,10 @@ case "$action" in
     done
 
     dreamfind "$@"
-    results=$(comm -12 <(echo "$toFilter" | tr ' ' '\n' | sort) <(echo "$args" | tr ' ' '\n' | sort))
+    results=$(comm -12 <(tr ' ' '\n' <<<"$toFilter" | sort) <(tr ' ' '\n' <<<"$args" | sort))
     # since comm needs sorted content, we have to reapply the order changes
-    [ $df_doReverse == 1 ] && results=$(echo "$results" | tac)
-    [ $df_doShuf == 1 ]    && results=$(echo "$results" | shuf)
+    [ $df_doReverse == 1 ] && results=$(tac <<<"$results")
+    [ $df_doShuf == 1 ]    && results=$(shuf <<<"$results")
     echo "$results"
     ;;
 
@@ -703,7 +703,7 @@ case "$action" in
     getHeader=$1
     shift
     dreamfind "$@"
-    grep "$getHeader:	" $args | sed -e "s/$getHeader:	\(.*\)/\1/" | sed -e 's/^00*\([0-9]\+\).dre:/\1: /'
+    grep "$getHeader:	" $args | sed -e "s/$getHeader:	\(.*\)/\1/" -e 's/^00*\([0-9]\+\).dre:/\1: /'
     ;;
 
 "dump-headers"|"dh")
@@ -752,9 +752,9 @@ case "$action" in
     dreamfind "$@"
     results=$(grep -h '^.*:	' $args | sed -e 's/^\(.*\):	.*$/\1/' | sort)
     if [ $showFreq == 1 ]; then
-        echo "$results" | uniq -c | sort -b -k 1rn -k 2
+        uniq -c <<<"$results" | sort -b -k 1rn -k 2
     else
-        echo "$results" | uniq
+        uniq <<<"$results"
     fi
     ;;
 
@@ -770,11 +770,11 @@ case "$action" in
     shift
     dreamfind "$@"
 
-    results=$(grep "$header:	" $args | sed -e 's/.*:	//' | sed -e 's/, /\n/g' | sort)
+    results=$(grep "$header:	" $args | sed -e 's/.*:	//' -e 's/, /\n/g' | sort)
     if [ $showfreq == 1 ]; then
-        echo "$results" | uniq -c | sort -b -k 1rn -k 2
+        uniq -c <<<"$results" | sort -b -k 1rn -k 2
     else
-        echo "$results" | uniq
+        uniq <<<"$results"
     fi
     ;;
 
@@ -804,12 +804,12 @@ case "$action" in
     dreamfind "$@"
     affectOnlyDreams="$args"
     dreamfind tagged "$header" "$searchpat"
-    args=$(comm -12 <(echo "$affectOnlyDreams" | tr ' ' '\n') \
-                    <(echo "$args" | tr ' ' '\n'))
+    args=$(comm -12 <(tr ' ' '\n' <<<"$affectOnlyDreams") \
+                    <(tr ' ' '\n' <<<"$args"))
 
     # If we're actually making changes, confirm that we really want to.
     if [ $doChange == 1 ]; then
-        numToChange=$(echo "$args" | wc -w)
+        numToChange=$(wc -w <<<"$args")
         echo "You are about to apply a search-and-replace that will affect" \
         "$numToChange $(numerize "$numToChange" dream)."
         if [ "$numToChange" -ge 50 ]; then
@@ -831,15 +831,15 @@ case "$action" in
     for filename in $args
     do
         headerline=$(grep -m 1 "$header:	" "$filename")
-        oldtags=$(echo "$headerline" | sed -e "s/$header:	//" | sed -e 's/, /\n/g')
-        newtags=$(echo "$oldtags" | sed -re "s@$searchpat@$replpat@g")
-        diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' | sed -e 's/^/  /')
+        oldtags=$(sed -e "s/$header:	//" -e 's/, /\n/g' <<<"$headerline")
+        newtags=$(sed -re "s@$searchpat@$replpat@g" <<<"$oldtags")
+        diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' -e 's/^/  /')
 
         if [ -z "$diffs" ]; then
             continue
         fi
 
-        replwith="$header:	$(echo "$newtags" | tr '\n' ',' | sed -e 's/,/, /g' | sed -e 's/, $//')"
+        replwith="$header:	$(tr '\n' ',' <<<"$newtags" | sed -e 's/,/, /g' sed -e 's/, $//')"
         if [ $doReplace == 1 ]; then
             sed -e "s@$headerline@$replwith@" "$filename" > repl.tmp
             rm "$filename"
