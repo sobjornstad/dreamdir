@@ -74,7 +74,7 @@ helptest() {
 }
 
 @test "dr version - display the version number" {
-	expected_ver=$(grep "^MYVERSION=" dr | sed -e 's/MYVERSION="\(.*\)"/\1/')
+	expected_ver=$(grep "declare -r MYVERSION=" dr | sed -e 's/.*MYVERSION="\(.*\)"/\1/')
 	run dr version
 	[ "$output" == "dr version $expected_ver" ]
 	run dr v
