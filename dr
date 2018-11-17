@@ -334,8 +334,8 @@ colorify() {
 getrange() {
     [ -n "$1" ] || "Invalid arguments given to getrange()"
     local startat; local endat
-    startat=$(cut -d '@' -f 1 <<<"$1")
-    endat=$(cut -d '@' -f 2 <<<"$1")
+    startat=${1%@*}
+    endat=${1#*@}
     if [ -z "$startat" ]; then
         dreamfind 1
         startat=$(defileify $args)
