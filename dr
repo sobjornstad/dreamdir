@@ -859,8 +859,7 @@ case "$action" in
 
     ;;
 
-"check-validity"|"validate"|"cv")
-    [ "$action" == "validate" ] && >&2 echo "WARNING: 'validate' is now 'check-validity'. 'validate' will be removed in a future version."
+"check-validity"|"cv")
     validate_dreamdir
     ;;
 
