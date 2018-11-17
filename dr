@@ -884,14 +884,13 @@ case "$action" in
     echo "dr version $MYVERSION" ;;
 
 "help"|"--help"|"h"|"-h"|*)
-    if [[ "$1" == "search" || "$1" == "s" || "$1" == "edit" || "$1" == "find" ]]; then
-        usagemsg_edit
-    elif [[ "$1" == "header-replace" || "$1" == "hr" ]]; then
-        usagemsg_header_replace
-    else
-        usagemsg
-    fi
+    case $1 in
+        "search"|"s"|"edit"|"find")
+            usagemsg_edit ;;
+        "header-replace"|"hr")
+            usagemsg_header_replace ;;
+        *)
+            usagemsg ;;
+    esac
     ;;
 esac
-
-exit 0
