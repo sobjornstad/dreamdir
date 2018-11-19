@@ -585,41 +585,42 @@ NEWDREAM
     rm "/tmp/$newNum.dre"
 }
 
+# header_replace()
+# Perform a search-and-replace in headers or other tags. Accepts $@ as arguments.
 header_replace() {
+    local usageMsg
     usageMsg="Usage: $(basename "$0") header-replace [-f] <header> <search> <replace> <search-expr>\nType 'dr help header-replace' for details."
-    [ -n "$1" ] || die "$usageMsg"
-    [ -n "$2" ] || die "$usageMsg"
-    [ -n "$3" ] || die "$usageMsg"
-    [[ "$2" =~ @ || "$3" =~ @ ]] && \
-        die "Sorry, at-signs (@) are not valid in search/replace regexes."
+    [[ -n "$1" && -n "$2" && -n "$3" ]] || die "$usageMsg"
+    [[ "$2" =~ @ || "$3" =~ @ ]] && die "Sorry, at-signs (@) are not valid in search/replace regexes."
 
-    if [ "$1" == "-f" ]; then
-        doChange=1
+    if [ "$1" = "-f" ]; then
+        local doChange=1
         shift
     else
-        doChange=0
+        local doChange=0
     fi
 
-    header="$1"
-    searchpat="$2"
-    replpat="$3"
-    shift; shift; shift
+    local header="$1"
+    local searchpat="$2"
+    local replpat="$3"
+    shift 3
 
     # Since the replace loop is rather expensive, compile a list of dreams that
     # both match our search-expr and include the <search> hregex, and look only
     # at those.
     dreamfind "$@"
-    affectOnlyDreams="$args"
+    local affectOnlyDreams="$args"
     dreamfind tagged "$header" "$searchpat"
     args=$(comm -12 <(tr ' ' '\n' <<<"$affectOnlyDreams") \
                     <(tr ' ' '\n' <<<"$args"))
 
     # If we're actually making changes, confirm that we really want to.
-    if [ $doChange == 1 ]; then
+    local numToChange
+    if [ $doChange -eq 1 ]; then
         numToChange=$(wc -w <<<"$args")
         echo "You are about to apply a search-and-replace that will affect" \
         "$numToChange $(numerize "$numToChange" dream)."
-        if [ "$numToChange" -ge 50 ]; then
+        if [ $numToChange -ge 50 ]; then
             echo -e "\e[1;31mThat looks like quite a few dreams.\e[0m"
         fi
         echo "If this doesn't sound right, please check the results without -f first!"
@@ -627,27 +628,25 @@ header_replace() {
         if [ "$doCont" != "y" ]; then
             exit 0
         fi
-        doReplace=1
-        shift
     else
         echo "                    === Preview of changes to be applied ==="
-        doReplace=0
     fi
 
-    numAffected=0
-    for filename in $args
-    do
+    local numAffected=0
+    for filename in $args; do
+        local headerline; local oldtags; local newtags; local diffs
         headerline=$(grep -m 1 "$header:	" "$filename")
         oldtags=$(sed -e "s/$header:	//" -e 's/, /\n/g' <<<"$headerline")
         newtags=$(sed -re "s@$searchpat@$replpat@g" <<<"$oldtags")
-        diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed '1,2d' -e 's/^/  /')
+        diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed -e '1,2d' -e 's/^/  /')
 
         if [ -z "$diffs" ]; then
             continue
         fi
 
-        replwith="$header:	$(tr '\n' ',' <<<"$newtags" | sed -e 's/,/, /g' sed -e 's/, $//')"
-        if [ $doReplace == 1 ]; then
+        local replwith
+        replwith="$header:	$(tr '\n' ',' <<<"$newtags" | sed -e 's/,/, /g' -e 's/, $//')"
+        if [ $doChange -eq 1 ]; then
             sed -e "s@$headerline@$replwith@" "$filename" > repl.tmp
             rm "$filename"
             mv repl.tmp "$filename"
@@ -657,7 +656,8 @@ header_replace() {
         fi
         numAffected=$((numAffected+1))
     done
-    if [ $doReplace == 1 ]; then
+
+    if [ $doChange -eq 1 ]; then
         echo "Changed $numAffected $(numerize $numAffected file)."
     else
         echo "Changes will affect $numAffected $(numerize $numAffected file)."
