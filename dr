@@ -553,8 +553,7 @@ newdream() {
     printf -v newNum '%05d' "$newNum"
 
     # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
-    ed <<NEWDREAM >/dev/null 2>&1
-i
+    cat <<NEWDREAM >"$newNum.dre" 2>&1
 Id:	$newNum
 Date:	$today
 Time:	
@@ -564,13 +563,10 @@ Places:
 Tags:	
 
 
-.
-w $newNum.dre
-w /tmp/$newNum.dre
-q
 NEWDREAM
+    cp "$newNum.dre" "/tmp/$newNum.dre"
 
-    if [ "$EDITOR" == "vim" ]; then
+    if [ "$EDITOR" = "vim" ]; then
         # use vim's option to place the cursor on the last line
         vim "$newNum.dre" +
     else
