@@ -2,7 +2,7 @@
 # shellcheck disable=SC2086,SC1117
 
 # %%% dr - Dreamdir utility program
-# Copyright (c) 2015-2018 Soren Bjornstad; see LICENSE for details.
+# Copyright (c) 2015-2019 Soren Bjornstad; see LICENSE for details.
 
 ##### NOTES ON SHELLCHECK DIRECTIVES #####
 # (For some stupid reason there can't be other comments between the shebang and
@@ -32,7 +32,7 @@ declare -r DREAMGLOB='[0-9][0-9][0-9][0-9][0-9].dre'
 usagemsg() {
     cat <<USAGEMSG
 dr - Dreamdir utility program
-Copyright (c) 2015-2018 Soren Bjornstad; see LICENSE for details.
+Copyright (c) 2015-2019 Soren Bjornstad; see LICENSE for details.
 
 Usage: $(basename "$0") <action> [<action arguments>]
 There are two types of actions, searches and utilities.
