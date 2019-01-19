@@ -831,10 +831,7 @@ case "$action" in
     ;;
 
 "get-header"|"gh")
-    #TODO: Possibility of formatting options (filename or number, remove
-    #leading 0's, include header name)
-    usageMsg="Usage: $(basename "$0") get-header <header> <search-expr>"
-    [ -n "$1" ] || die "$usageMsg"
+    [ -n "$1" ] || die "Usage: $(basename "$0") get-header <header> <search-expr>"
     getHeader=$1
     shift
     dreamfind "$@"
