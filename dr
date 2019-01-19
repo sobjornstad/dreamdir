@@ -842,39 +842,36 @@ case "$action" in
     ;;
 
 "dump-headers"|"dh")
+    # shellcheck disable=SC2016
+    # :: Indeed, expressions don't expand in single quotes. That's the point!
+    mainCmd='awk '\''{ if (!$0) { print ""; nextfile }; print $0; }'\'' $args'
+
+    # add color if running in an interactive terminal
+    [ -t 1 ] && highlightCmd='| colorify'
+
+    # evaluate pipeline with appropriate parts
     dreamfind "$@"
-    for i in $args; do
-        [ ! -f "$i" ] && echo "File $i not found."
-        text=$(awk '{ if(!$0) exit; print $0; }' < "$i")
-        if [ -t 1 ]; then
-            # running in an interactive terminal
-            colorify "$text"
-        else
-            echo "$text"
-        fi
-        echo ""
-    done
+    eval "$mainCmd $highlightCmd"
     ;;
 
 "cat"|"c")
-    if [ "$1" == "-f" ]; then
-        printCommand="fold -s"
+    # shellcheck disable=SC2016
+    # :: Indeed, expressions don't expand in single quotes. That's the point!
+    # See https://unix.stackexchange.com/a/212949 on this funky paste usage.
+    mainCmd=': | paste -sd "\n" $(sed $"s/\s/ - - /g" <<< $args)'
+
+    # add color if running in an interactive terminal
+    [ -t 1 ] && highlightCmd='| colorify'
+
+    # fold if requested
+    if [ "$1" = "-f" ]; then
+        foldCmd="| fold -s"
         shift
-    else
-        printCommand="cat"
     fi
 
+    # evaluate pipeline with appropriate parts
     dreamfind "$@"
-    for i in $args; do
-        text=$($printCommand "$i")
-        if [ -t 1 ]; then
-            # running in an interactive terminal
-            colorify "$text"
-        else
-            echo "$text"
-        fi
-        echo -en "\n\n"
-    done
+    eval "$mainCmd $highlightCmd $foldCmd"
     ;;
 
 "list-headers"|"lh")
