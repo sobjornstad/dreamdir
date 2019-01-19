@@ -593,9 +593,9 @@ dreamfind() {
     done
 
     # apply option flags
-    # shellcheck disable=2086
-    # :: We *don't* want $args to be quoted -- we're doing this to expand globs.
-    args=$(echo $args | cat -)
+    # shellcheck disable=2086,2116
+    # :: Yes, this looks dumb. It expands any globs the string contains.
+    args=$(echo $args)
     if [ $invert -eq 1 ]; then
         args=$(comm -3 <(find $DREAMGLOB | tr ' ' '\n' | sort) <(tr ' ' '\n' <<<"$args" | sort))
     fi
