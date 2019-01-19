@@ -926,7 +926,14 @@ case "$action" in
 "act"|"a")
     [ -n "$1" ] || die "Usage: [chain of piped dr commands] | dr act <search action>"
     input=$(cat <&0)
-    "$0" "$@" $input
+    if [ "$1" = "edit" ]; then
+        # Work around broken terminal when stdin is being redirected, as
+        # recommended in the xargs man page and, e.g.:
+        # https://github.com/sitaramc/map/issues/1
+        "$0" "$@" $input </dev/tty
+    else
+        "$0" "$@" $input
+    fi
     ;;
 
 "become-lucid"|"bl")
