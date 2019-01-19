@@ -44,20 +44,20 @@ expression selects all dreams. For information about search expressions, type
 '$(basename "$0") help search'.
 
 cat [-f]            :: print all content of matching dreams on stdout; if -f,
-                       pass through 'fold -s' to limit line length to 80 chars
+                       fold lines to a maximum length of 80 characters
 dump-headers        :: print headers of matching dreams
 edit                :: pass matching dreams as args to \$EDITOR
 find                :: show numbers of matching dreams
 filename-display    :: print filenames of matching dreams
-get-header <header> :: print values of header for matching dreams
+get-header <header> :: print values of <header> for matching dreams
 header-values [-f] <header> :: show a list of all values used for <header>
-                       in matching dreams (include frequency if -f)
+                       in matching dreams (include frequency if -f specified)
 list-headers [-f]   :: list headers used in at least one matching dream
-                       (with frequency if -f specified)
+                       (include frequency if -f specified)
 word-count          :: show word count of the specified dreams, not
                        including headers
-winnow              :: read filenames from stdin and AND them with
-                       the results of another query
+winnow              :: read filenames from stdin and write only those matching
+                       this expression to stdout (to create AND queries)
 
                              UTILITIES
 Utilities perform some other action.
@@ -90,29 +90,31 @@ Select dreams matching search expression <expr> and take <action>
 (available search actions are listed under 'dr help').
 
                              SEARCH EXPRESSIONS
-A search expression is one or more of the following. If multiple search
-expressions are given, their results will be concatenated.
+A search expression is one or more of the following.  If multiple search
+expressions are given, each search expression is evaluated in turn and the
+results are concatenated.
+
   * a dream number (leading zeroes are allowed but not required)
   * a range of numbers: 12-18 or -18 (i.e., 1-18) or 12- (i.e., 12-last dream);
     leading zeroes are allowed but not required
   * a Bash globbing pattern for some dream numbers (leading zeroes are required)
-  * a[ll]          :: select all dreams (same as a quoted '*')
+  * a[ll]          :: select all dreams
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
                       file (whether in headers, notes, or text)
   * t[agged] <header> <hregex> :: select dreams with <header> matching <hregex>
-  * r[andom] [<N>] :: select N dreams randomly from your dreamdir, in numerical
-                      order (add -s if desired)
+  * r[andom] [<N>] :: select N dreams at random, presenting those selected in
+                      numerical order (add -s if random order is desired)
 
 N defaults to 1 if not provided.
 
 A search expression may be entirely blank; in this case all dreams are
-selected. Options are still parsed (see below).
+selected.  Options are still parsed (see below).
 
 Globbing patterns used in search expressions should be quoted (e.g., to edit
 all dreams, use "dr edit '*'" , not "dr edit *").  They will be expanded either
-way, but 'dr' can parse a glob more quickly than a very long argument list, so
+way, but 'dr' can parse a glob more quickly than a long argument list, so
 the search will finish faster if you quote the pattern.  Note also that
 including '.dre' is optional -- that is, '0100[34]' expands to '01003.dre
 01004.dre'.
@@ -121,6 +123,7 @@ including '.dre' is optional -- that is, '0100[34]' expands to '01003.dre
 <hregex>es are Extended Regular Expressions (EREs) that match only within
 comma-separated items.  The ^ and $ anchors can be used to match the start and
 end of a single item.  For example, with header "Tags: foo, bar baz, foobar":
+
   REGEX     :: MATCHES
   foo       :: 'foo' & 'foobar'
   bar       :: 'bar' & 'foobar'
@@ -132,6 +135,7 @@ end of a single item.  For example, with header "Tags: foo, bar baz, foobar":
   ^baz$     :: -
   o, ba     :: -
   foo.*baz  :: -
+
 Padding your expression with ^ and $ is often useful; otherwise 'cat' matches
 'catalog' and 'duplicate'. If you want to avoid 'catalog' but still get 'cat
 food', you can pad with '\\b' (word boundary).
@@ -157,21 +161,26 @@ dr filename-display 006[12]?  :: show the filenames of dreams #610-629
 dr edit last 4 890            :: edit the last four dreams and #890
 dr dump-headers 20 0[12]01*   :: show headers for dreams #20, #1010-1019,
                                  #2010-2019
-dr get-header Tags '*'        :: get a listing of the tags of all your dreams
+dr get-header Tags '*'        :: show the Tags lines of all your dreams
 dr edit -s last 6             :: edit the last six dreams in a random order
 dr cat -l 6 grep 'foo|bar'    :: print the first six dreams with a line
                                  containing the substring "foo" or "bar"
 dr edit -r grep 'XX' back 20  :: edit the dream 20 from the end, then dreams
                                  containing "XX" in reverse numerical order
 dr filename-display random 5  :: list the filenames of five random dreams
-dr find tagged People Maud    :: edit dreams in which Maud appeared
-dr edit tagged Tags '^cat$'   :: display dreams tagged with 'cat', but not
+dr find tagged Places XYZ     :: show numbers of dreams taking place at XYZ
+dr edit tagged Tags '^cat$'   :: edit dreams tagged with 'cat', but not
                                  'caterwaul' or 'dedicate'
 dr filename-display 610-629 | :: see a list of all the places used in dreams
   dr winnow t Tags 'dog' |       #610-629 that have a tag containing the
   dr act header-values Places    substring 'dog'
 dr wc                         :: display a word count of all dreams
-dr wc -sl 12 all              :: display a word count of 12 random dreams
+dr wc -sl 12 all              :: display the word count of 12 random dreams
+dr list-headers -f 500- |     :: show what headers you've used more than 50
+  awk '\$1 > 50'                 times (e.g., 'Date', 'Id', 'Tags') in dreams
+                                 500 and newer
+dr fd tagged People Maud |    :: copy dreams Maud appears in into the
+  xargs cp -t maud-dreams        'maud-dreams' folder
 USAGEMSG
     exit 0
 }
@@ -179,7 +188,7 @@ USAGEMSG
 usagemsg_header_replace() {
     cat <<USAGEMSG
                              DR - HEADER-REPLACE
-$(basename "$0") header-replace [-f] <header> <find> <replace> <search-expr>
+$(basename "$0") header-replace [-f] <header> <find> <replace> [<search-expr>]
 
 In dreams matching <search-expr>, replace instances of <find> in header
 <header> with <replace>.  <header> and <replace> are EREs; <find> is
@@ -190,8 +199,9 @@ separately.  For example, for the header 'Tags: bar, baz', we could find 'ba'
 and replace with 'fo' and obtain 'Tags: for, foz', but a search for 'r, b' will
 not match anything.
 
-Each comma-separated value is considered a separate line, so we can search for
-'^foobar$' to match only the entire tag 'foobar' and not, say, 'foobarbaz'.
+Each comma-separated value is treated as a separate line for matching purposes,
+so we can search for '^foobar$' to match only 'foobar' and not 'foobarbaz' in
+'Tags: foobar, foobarbaz'.
 
                              PREVIEWING
 Without the -f option, dr produces a preview of the changes your search-and-
