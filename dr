@@ -428,9 +428,9 @@ getrange() {
 # (variable) dream filenames to pass to the word count program
 drwordcount() {
     local params
-    if [ "$1" == "p" ]; then
+    if [ "$1" = "p" ]; then
         params="-p"
-    elif [ "$1" == "t" ]; then
+    elif [ "$1" = "t" ]; then
         params="-s"
     else
         die "Illegal arguments to drwordcount()!"
@@ -442,7 +442,7 @@ drwordcount() {
     if [ -x "scripts/bin/drwc" ]; then
         scripts/bin/drwc $params $@
     else
-        if [ "$params" == "-p" ]; then
+        if [ "$params" = "-p" ]; then
             python2 <<WC_END
 import scripts.ddirparse as dp
 print dp.getCount("$@".split(' '), asPrettyString=True)
@@ -533,7 +533,7 @@ dreamfind() {
                 howMany=1
             fi
             newargs=$(find $DREAMGLOB | tail -n "$howMany")
-            if [[ "$action" == "back" || "$action" == "b" ]]; then
+            if [[ "$action" = "back" || "$action" = "b" ]]; then
                 newargs=$(head -n 1 <<<"$newargs")
             fi
             ;;
@@ -577,7 +577,7 @@ dreamfind() {
             ;;
 
         *) # filename glob
-            if [[ $1 == *".dre" ]]; then
+            if [[ $1 = *".dre" ]]; then
                 newargs="$1"
             else
                 newargs="$1.dre"
@@ -835,8 +835,8 @@ case "$action" in
     dreamfind "$@"
     results=$(comm -12 <(tr ' ' '\n' <<<"$toFilter" | sort) <(tr ' ' '\n' <<<"$args" | sort))
     # since comm needs sorted content, we have to reapply the order changes
-    [ $df_doReverse == 1 ] && results=$(tac <<<"$results")
-    [ $df_doShuf == 1 ]    && results=$(shuf <<<"$results")
+    [ $df_doReverse -eq 1 ] && results=$(tac <<<"$results")
+    [ $df_doShuf -eq 1 ]    && results=$(shuf <<<"$results")
     echo "$results"
     ;;
 
@@ -882,7 +882,7 @@ case "$action" in
     ;;
 
 "list-headers"|"lh")
-    if [ "$1" == "-f" ]; then
+    if [ "$1" = "-f" ]; then
         showFreq=1
         shift
     else
@@ -890,7 +890,7 @@ case "$action" in
     fi
     dreamfind "$@"
     results=$(grep -h '^.*:	' $args | sed -e 's/^\(.*\):	.*$/\1/' | sort)
-    if [ $showFreq == 1 ]; then
+    if [ $showFreq -eq 1 ]; then
         uniq -c <<<"$results" | sort -b -k 1rn -k 2
     else
         uniq <<<"$results"
@@ -898,7 +898,7 @@ case "$action" in
     ;;
 
 "header-values"|"hv")
-    if [ "$1" == "-f" ]; then
+    if [ "$1" = "-f" ]; then
         showfreq=1
         shift
     else
@@ -910,7 +910,7 @@ case "$action" in
     dreamfind "$@"
 
     results=$(grep "$header:	" $args | sed -e 's/.*:	//' -e 's/, /\n/g' | sort)
-    if [ $showfreq == 1 ]; then
+    if [ $showfreq -eq 1 ]; then
         uniq -c <<<"$results" | sort -b -k 1rn -k 2
     else
         uniq <<<"$results"
