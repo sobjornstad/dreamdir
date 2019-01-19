@@ -517,7 +517,7 @@ dreamfind() {
     args=""
     local newargs=""
     local howMany=0
-    while [ ! -z "$1" ]; do
+    while [ -n "$1" ]; do
         if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
             local num=$((10#$1))
             printf -v newargs '%05d.dre' "$num"
@@ -526,7 +526,7 @@ dreamfind() {
         else case "$1" in
         "last"|"back"|"l"|"b")
             local action=$1
-            if [[ ! -z "$2" && $2 =~ ^[0-9]+$ ]]; then
+            if [[ -n "$2" && $2 =~ ^[0-9]+$ ]]; then
                 howMany="$2"
                 shift
             else
@@ -545,7 +545,7 @@ dreamfind() {
             ;;
 
         "random"|"r")
-            if [[ ! -z "$2" && $2 =~ ^[0-9]+$ ]]; then
+            if [[ -n "$2" && $2 =~ ^[0-9]+$ ]]; then
                 howMany=$2
                 shift
             else
@@ -785,7 +785,7 @@ validate_dreamdir() {
 ##### MAIN SCRIPT #####
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
-if [[ ! -z "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
+if [[ -n "$DREAMDIR" && "$PWD" != "$DREAMDIR" && ! -f ".dreamdir" ]]; then
     if ! cd "$DREAMDIR"; then
         echo "ERROR: The current directory is not a dreamdir and the DREAMDIR"
         echo "environment variable is set to an invalid directory"
