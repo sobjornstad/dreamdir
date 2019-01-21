@@ -194,7 +194,7 @@ int main (int argc, char **argv)
 {
     int shift_args;
     struct options opts = parse_opts(argc, argv, &shift_args);
-    argv = argv + shift_args; /* argv now points to start of filenames */
+    argv += shift_args; /* argv now points to start of filenames */
 
     struct dream_wc total_counts = {0, 0, 0};
     struct dream_wc count;
@@ -211,7 +211,7 @@ int main (int argc, char **argv)
         total_counts.normal += count.normal;
         total_counts.lucid  += count.lucid;
         total_counts.notes  += count.notes;
-        argv += 1;
+        argv++;
     }
 
     print_counts(&total_counts, "total", &opts);
