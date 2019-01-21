@@ -24,21 +24,21 @@ struct dream_wc {
     unsigned notes;
 };
 
-struct opts_field {
-    bool show_normal  : 1;
-    bool show_lucid   : 1;
-    bool show_notes   : 1;
-    bool show_total   : 1;
-    bool pretty_print : 1;
-    bool summary_only : 1;
+struct options {
+    bool show_normal;
+    bool show_lucid;
+    bool show_notes;
+    bool show_total;
+    bool pretty_print;
+    bool summary_only;
 };
 
 void usage_msg (char **argv);
-struct opts_field new_opts (void);
-struct opts_field parse_opts (int argc, char **argv, int *shift_args);
+struct options new_opts (void);
+struct options parse_opts (int argc, char **argv, int *shift_args);
 struct dream_wc wc (char *name);
 void print_counts (const struct dream_wc *counts, const char* filename,
-                   const struct opts_field *opts);
+                   const struct options *opts);
 int main (int argc, char **argv);
 
 const char *USAGE_MSG =
@@ -68,13 +68,13 @@ void usage_msg (char **argv)
     printf(USAGE_MSG, argv[0], argv[0]);
 }
 
-struct opts_field new_opts (void)
+struct options new_opts (void)
 {
-    struct opts_field opts = {false, false, false, false, false};
+    struct options opts = {false, false, false, false, false};
     return opts;
 }
 
-struct opts_field parse_opts (int argc, char **argv, int *shift_args)
+struct options parse_opts (int argc, char **argv, int *shift_args)
 {
     /* short-circuited if argc < 2 */
     if (argc < 2 || !strcmp(argv[1], "--help")) {
@@ -82,7 +82,7 @@ struct opts_field parse_opts (int argc, char **argv, int *shift_args)
         exit(argc < 2 ? 1 : 0);
     }
 
-    struct opts_field opts = new_opts();
+    struct options opts = new_opts();
     char opt;
     opterr = 0; // say we want to do our own error handling for getopt
     while ((opt = getopt(argc, argv, "hnlotps")) != -1) {
@@ -168,7 +168,7 @@ struct dream_wc wc (char *name)
 }
 
 void print_counts (const struct dream_wc *counts, const char* filename,
-                   const struct opts_field *opts)
+                   const struct options *opts)
 {
     if (opts->pretty_print) {
         if (!opts->summary_only)
@@ -193,7 +193,7 @@ void print_counts (const struct dream_wc *counts, const char* filename,
 int main (int argc, char **argv)
 {
     int shift_args;
-    struct opts_field opts = parse_opts(argc, argv, &shift_args);
+    struct options opts = parse_opts(argc, argv, &shift_args);
     argv = argv + shift_args; /* argv now points to start of filenames */
 
     struct dream_wc total_counts = {0, 0, 0};
