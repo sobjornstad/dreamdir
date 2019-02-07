@@ -103,7 +103,9 @@ results are concatenated.
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
                       file (whether in headers, notes, or text)
-  * t[agged] <header> <hregex> :: select dreams with <header> matching <hregex>
+  * t[agged] [-f] <header> <hregex> :: select dreams with <header> matching
+                      <hregex>; with -f ("full"), select based on a standard
+                      ERE on the whole line rather than an hregex
   * r[andom] [<N>] :: select N dreams at random, presenting those selected in
                       numerical order (add -s if random order is desired)
 
@@ -559,21 +561,54 @@ dreamfind() {
             ;;
 
         "tagged"|"t")
-            local usage="Usage: dr $action tagged <header regex> <value regex>"
+            local usage="Usage: dr $action tagged [-f] <header regex> <value regex>"
             [ -n "$2" ] || die "$usage"
             [ -n "$3" ] || die "$usage"
-            # The idea here is to replace the delimiters with '@@@@@' (which we
-            # can fairly safely assume will not show up in a tag), then change
-            # the user's regex to match '@@@@@' as BOL/EOL and not cross it
-            # with '.'.
-            local header="$2"
-            local pattern
-            pattern=$(sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/' <<<"$3")
-            newargs=$(grep -m 1 "$header:	" $DREAMGLOB |
-                sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
-                grep -E "[0-9]{5}\.dre:.*$pattern" |
-                sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
-            shift 2
+            shift # remove 'tagged' subcommand
+
+            local df_t_full=0
+            OPTIND=0
+            while getopts :f opt; do
+                case $opt in
+                f)  df_t_full=1 ;;
+                *)  die "Invalid option (-f is valid; see 'dr help search')."
+                esac
+            done
+            shift $((OPTIND-1))
+
+            local header=$1
+            local searchpat=$2
+            if [ $df_t_full -eq 1 ]; then
+                # Treat ^ and $ as the end of the header field. If these are
+                # not used, add .* to simulate the substring match you would
+                # get if the $header: constraint weren't out front.
+                local newsearchpat=$searchpat
+                if [ ${searchpat:0:1} = "^" ]
+                    then newsearchpat="${searchpat:1}"
+                    else newsearchpat='.*'"${searchpat}"
+                fi
+                if [ ${searchpat: -1} = "$" ]
+                    then newsearchpat="${newsearchpat:0: -1}"
+                    else newsearchpat="${newsearchpat}"'.*'
+                fi
+                newargs=$(grep -Em 1 "$header:	$newsearchpat" $DREAMGLOB |
+                    sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            else
+                # Comma-separated match. The idea here is to replace the
+                # delimiters with '@@@@@' (which we can fairly safely assume
+                # will not show up in a tag), then change the user's regex to
+                # match '@@@@@' as BOL/EOL and not cross it with '.'.
+                local pattern
+                pattern=$(sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/' <<<"$searchpat")
+                newargs=$(grep -m 1 "$header:	" $DREAMGLOB |
+                    sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
+                    grep -E "[0-9]{5}\.dre:.*$pattern" |
+                    sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
+            fi
+
+            # we want to leave one argument since we already shifted away
+            # "tagged" and the main loop shifts one argument for the subcommand
+            shift
             ;;
 
         *) # filename glob

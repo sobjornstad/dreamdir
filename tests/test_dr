@@ -179,8 +179,17 @@ fn_check() {
     fn_test NOMATCH t Tags '^baz$'
     fn_test NOMATCH t Tags 'o, ba'
     fn_test NOMATCH t Tags 'foo.*baz'
+    fn_test NOMATCH t Tags 'foo, bar baz'
     # regression test for #16: don't find dream numbers with numeric values
     fn_test NOMATCH t Tags '8'
+
+    # -f option: look at the full field
+    fn_test "8"     t -f Tags 'foo, bar baz'
+    fn_test "8"     t -f Tags '^foo, bar baz, foobar$'
+    fn_test "8"     t -f Tags '^foo' # accepts anchored substring match
+    fn_test "8"     t -f Tags 'bar$'
+    fn_test "8"     t -f Tags 'ar ba' # accepts any substring match
+    fn_test NOMATCH t -f Tags 'blablabla'
 
     # some additional hregex tests
     fn_test "4, 7"    t Tags   'sex'         
