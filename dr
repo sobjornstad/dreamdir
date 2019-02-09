@@ -63,7 +63,8 @@ winnow              :: read filenames from stdin and write only those matching
 Utilities perform some other action.
 
 act <search action> :: take <search action> on the list of filenames given on
-                       stdin; useful at the end of a winnow pipeline
+                       stdin; useful for integration with other systems or at
+                       the end of a winnow pipeline
 help                :: show this usage message
 header-replace      :: regex search-and-replace on headers; type
                        '$(basename "$0") help header-replace' for info
@@ -101,6 +102,9 @@ results are concatenated.
   * a[ll]          :: select all dreams
   * b[ack] [<N>]   :: select the dream N positions from the end, inclusive
   * l[ast] [<N>]   :: like 'back', but select all dreams between N and the end
+  * d[ate] <op> <date> :: select dreams by date; <op> is 'gt', 'ge', 'lt',
+                      'le', 'eq', or 'ne' or the usual symbolic equivalents
+                      (>, >=, <, <=, =, !=), and <date> is in YYYY-MM-DD format
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
                       file (whether in headers, notes, or text)
   * t[agged] [-f] <header> <hregex> :: select dreams with <header> matching
@@ -167,6 +171,7 @@ dr get-header Tags '*'        :: show the Tags lines of all your dreams
 dr edit -s last 6             :: edit the last six dreams in a random order
 dr cat -l 6 grep 'foo|bar'    :: print the first six dreams with a line
                                  containing the substring "foo" or "bar"
+dr cat date ge 2018-01-01     :: print all dreams from 2018 or later
 dr edit -r grep 'XX' back 20  :: edit the dream 20 from the end, then dreams
                                  containing "XX" in reverse numerical order
 dr filename-display random 5  :: list the filenames of five random dreams
