@@ -207,6 +207,41 @@ fn_check() {
     fn_test "7, 6, 7" tagged Tags 'rel.*ship' tagged People OC
 }
 
+@test "dr find date" {
+    # the basics
+    fn_test "1, 2, 3" date lt 2011-05-06
+    fn_test "1, 2, 3, 4, 5" date le 2011-05-06
+    fn_test "6, 7, 8, 9" date gt 2011-05-06
+    fn_test "4, 5, 6, 7, 8, 9" date ge 2011-05-06
+    fn_test "1, 2, 3, 6, 7, 8, 9" date ne 2011-05-06
+    fn_test "4, 5" date eq 2011-05-06
+
+    # alternative operators
+    fn_test "1, 2, 3" date '<' 2011-05-06
+    fn_test "1, 2, 3, 4, 5" date '<=' 2011-05-06
+    fn_test "6, 7, 8, 9" date '>' 2011-05-06
+    fn_test "4, 5, 6, 7, 8, 9" date '>=' 2011-05-06
+    fn_test "1, 2, 3, 6, 7, 8, 9" date '!=' 2011-05-06
+    fn_test "1, 2, 3, 6, 7, 8, 9" date '<>' 2011-05-06
+    fn_test "4, 5" date '=' 2011-05-06
+    fn_test "4, 5" date '==' 2011-05-06
+
+    # boundary conditions
+    fn_test NOMATCH date gt 2011-05-08
+    fn_test "8, 9" date ge 2011-05-08
+    fn_test NOMATCH date lt 2011-05-01
+    fn_test "1, 2, 3" date le 2011-05-01
+
+    # out of range
+    fn_test NOMATCH date le 2011-01-01
+    fn_test NOMATCH date ge 2016-01-01
+
+    # invalid date
+    run dr find date lt notadate
+    [ $status -eq 1 ]
+    [[ ${lines[0]} =~ "Invalid date" ]]
+}
+
 @test "dr find winnow - test of winnow with tagged" {
     # winnow / piping
     result=$(dr find $(dr filename-display tagged Tags 'rel.*ship' | dr winnow tagged People OC))
