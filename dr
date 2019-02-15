@@ -49,7 +49,8 @@ dump-headers        :: print headers of matching dreams
 edit                :: pass matching dreams as args to \$EDITOR
 find                :: show numbers of matching dreams
 filename-display    :: print filenames of matching dreams
-get-header <header> :: print values of <header> for matching dreams
+get-header <header> :: print values of <header> for matching dreams (no line is
+                       printed for matching dreams that have no such <header>)
 header-values [-f] <header> :: show a list of all values used for <header>
                        in matching dreams (include frequency if -f specified)
 list-headers [-f]   :: list headers used in at least one matching dream
