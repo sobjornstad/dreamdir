@@ -70,7 +70,7 @@ header-replace      :: regex search-and-replace on headers; type
                        '$(basename "$0") help header-replace' for info
 new                 :: create a new dream with the next available ID
                        number and open it for editing
-regenerate-tags     :: run scripts/vimtags.py to update the Vim tags list
+regenerate-tags     :: regenerate ctags file '.dreams.ctags' in the dreamdir
 check-validity      :: format sanity check: ensure all dreams have
                        IDs and dates and ID numbers are contiguous
 version             :: print version number of this 'dr'
@@ -874,6 +874,47 @@ AWKSCRIPT
 }
 
 
+# regenerate_tags()
+# Generate a ctags file for dreams. All header values are included.
+regenerate_tags() {
+    python3 <<PYTHONSCRIPT
+import os
+
+DREAMDIR = os.environ['DREAMDIR']
+OUTPUTFILE = os.path.join(DREAMDIR, '.dreams.ctags')
+
+def get_headers():
+    dreams = {}
+    for dreamfile in (i for i in os.listdir(DREAMDIR)
+                      if i.endswith('.dre')):
+        with open(os.path.join(DREAMDIR, dreamfile)) as f:
+            dream = {}
+            for line in f:
+                if not line.strip():
+                    break
+                header, value = (i.strip() for i in line.split(':\t'))
+                dream[header] = value
+            dreams[dreamfile[:-4]] = dream
+    return dreams
+
+tags = []
+headers = get_headers()
+for dream_id, headers in sorted(headers.items()):
+    tags.append((str(int(dream_id)), dream_id, "1"))
+    title = headers.get('Title', '')
+    for hname, hcontent in headers.items():
+        for part in hcontent.split(', '):
+            tags.append((part, dream_id, '/%s:\t%s/%s' % (
+                hname, hcontent, (' " || Title: %s' % title if title else ''))))
+
+tags.sort(key=lambda i: str(i[0])) # tags files should be sorted
+with open(OUTPUTFILE, 'w') as f:
+    for tag, filenum, linenum in tags:
+        f.write('%s\t%s\t%s\n' % (tag, "%s.dre" % filenum, linenum))
+PYTHONSCRIPT
+}
+
+
 ##### MAIN SCRIPT #####
 # If DREAMDIR environment variable is set and we're not already in $DREAMDIR,
 # change directory into it until the end of the script.
@@ -1023,7 +1064,7 @@ case "$action" in
     ;;
 
 "regenerate-tags"|"rt")
-    scripts/vimtags.py ;;
+    regenerate_tags ;;
 
 "act"|"a")
     [ -n "$1" ] || die "Usage: [chain of piped dr commands] | dr act <search action>"
