@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2086,SC1117
+# shellcheck disable=SC2086,SC1117,SC2119
 
 # %%% dr - Dreamdir utility program
 # Copyright (c) 2015-2019 Soren Bjornstad; see LICENSE for details.
@@ -16,6 +16,9 @@
 #   "grep 'pattern' $DREAMGLOB" as errors, and as such produces a heap of
 #   irrelevant warnings in this script. We could switch to using arrays
 #   sometime in the future.
+# 2119: Turn off checks for passing no arguments to a function that seems to
+#   take some. This was leading to false positives all over on my POSIX
+#   proxies, which pass through $@ to ensure correct behavior in the future.
 
 
 ##### CONSTANTS #####
@@ -452,7 +455,14 @@ getrange() {
     fi
     [ -n "$startat" ] || die "No results."
     [ -n "$endat" ] || die "No results."
-    seq -f '%05g.dre' "$startat" "$endat"
+    # seq is marginally faster, but we can work around it if unavailable
+    if hash seq; then
+        seq -f '%05g.dre' "$startat" "$endat"
+    else
+        for ((i=startat; i<=endat; ++i)); do
+            printf "%05d.dre\n" $i
+        done
+    fi
 }
 
 # drwordcount()
@@ -948,6 +958,30 @@ fi
 # script so anything we run in an external scripting language like awk or
 # python can access it.
 export DREAMDIR=$PWD
+
+# Set up POSIX-compliant proxies if unavailable on the system.
+# shellcheck disable=SC2120
+# :: not using arguments *now*, but we need $@ there to work right all the time
+shuf() {
+    if hash shuf; then
+        command shuf "$@"
+    else
+        # https://stackoverflow.com/a/30133294/1938956
+        awk 'BEGIN {srand(); OFMT="%.17f"} {print rand(), $0}' "$@" |
+           sort -k1,1n |
+           cut -d ' ' -f2-
+    fi
+}
+
+# shellcheck disable=SC2120
+tac() {
+    if hash tac; then
+        command tac "$@"
+    else
+        # https://catonmat.net/sed-one-liners-explained-part-one
+        sed '1!G;h;$!d'
+    fi
+}
 
 # Figure out what action we're going to do and jump to appropriate code.
 [ -z "$1" ] && usagemsg
