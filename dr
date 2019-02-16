@@ -833,7 +833,7 @@ AWKSCRIPT
     }
     /^Date:	/ {
         dateFound = 1
-        print FILENAME ": Invalid date \$2 (wanted YYYY-MM-DD format)"
+        print FILENAME ": Invalid date header " \$2 " (wanted YYYY-MM-DD format)"
     }
     function endfile(name) {
         if (!dateFound)
