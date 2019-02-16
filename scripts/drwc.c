@@ -58,7 +58,7 @@ const char *USAGE_MSG =
   "-s   Display only the total (summary) word count, not each file's count.\n"
   "\n"
   "Counts are always shown in the order <normal> <lucid> <notes> <total>. The\n"
-  "machine-readable format is separated by spaces; the pretty format is\n"
+  "machine-readable format is separated by tabs; the pretty format is\n"
   "separated by newlines and has labels.\n"
   "\n"
   "If none of -nlot are used, all four counts will be shown.\n";
@@ -176,13 +176,13 @@ void print_counts (const struct dream_wc *counts, const char* filename,
         printf("~ %s ~\n", filename);
     }
     if (opts->show_normal)
-        printf(opts->pretty_print ? "Normal:\t%d\n" : "%d ", counts->normal);
+        printf(opts->pretty_print ? "Normal:\t%d\n" : "%d\t", counts->normal);
     if (opts->show_lucid)
-        printf(opts->pretty_print ? "Lucid:\t%d\n" : "%d ", counts->lucid);
+        printf(opts->pretty_print ? "Lucid:\t%d\n" : "%d\t", counts->lucid);
     if (opts->show_notes)
-        printf(opts->pretty_print ? "Notes:\t%d\n" : "%d ", counts->notes);
+        printf(opts->pretty_print ? "Notes:\t%d\n" : "%d\t", counts->notes);
     if (opts->show_total)
-        printf(opts->pretty_print ? "Total:\t%d\n" : "%d ",
+        printf(opts->pretty_print ? "Total:\t%d\n" : "%d\t",
                counts->normal + counts->lucid + counts->notes);
     if (!opts->pretty_print) {
         printf("%s", filename);
