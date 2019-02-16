@@ -1,3 +1,95 @@
+Changes in 2.0.0
+----------------
+
+This release of `dr` breaks interface backwards compatibility
+    and removes several low-value features
+    that were not worth maintaining.
+The format of dream files has not changed.
+If you have any scripts that call the `dr` command,
+    you should review this list for breaking changes.
+
+
+### New features
+
+* New `-f` option to the `tagged` search to match the entire header line with
+  an ERE rather than using an hregex. This is intended for fields like “Title”
+  which shouldn’t be treated as multiple comma-separated values.
+* New `date` search, which works like `dr find date lt 2018-01-01` to find
+  dreams from before January 1, 2018.
+* The template for `dr new` has gotten smaller but can now be customized with a
+  `.dream_template` file. Review `dr help new` for details.
+
+
+### Removed features
+
+* `stats` has been removed due to being buggy and very specific to me.
+  You can easily write external scripts to produce the statistics you want.
+* `xwinnow` has been removed due to lack of convincing use cases. It can be
+  replaced with a combination of OR and AND conditions.
+* `validate` is removed as a synonym of `check-validity` (this was deprecated
+  in 1.0.4).
+* The Python `word-count` implementation is no longer supported. The C
+  implementation must be built and installed to the system path to get word
+  counts.
+
+
+## Changed behaviors
+
+* The machine-readable format of `drwc` now separates its fields with tabs
+  rather than spaces, to match the behavior of the standard `wc` Unix command.
+  section.
+
+
+### Bugfixes
+
+* `1 matches` is now properly singular in the results of a `find` search.
+* The `tagged` search no longer matches the filename as a tag value if the
+  value specified is numeric (e.g., `tagged Tags 500` would match dream 500
+  even if dream 500 didn’t have a tag value of 500).
+* `get-header` now allows an empty search-expression.
+* Several fixes for `act` (some arguments were not being passed forward;
+  terminal could become broken on launching an interactive editor; all dreams
+  were acted on without warning if no input was received).
+* `winnow` now gives a useful error if something that is not a dream filename
+  is piped into it.
+
+
+### Dependency changes
+
+New dependencies:
+
+* `python3` is now required, but solely for the `regenerate-tags` command,
+  so it could reasonably be omitted if you don’t need ctags files.
+  (Python 2 is no longer required or supported.)
+* `awk` is now used fairly extensively. Any POSIX-compliant `awk` should
+  work.
+* `drwc` (included in this repository) must now be installed to the system
+  path to use the `word-count` function.
+
+Removed dependencies:
+
+* `python2` is no longer required. All Python snippets have either been
+  converted to `bash` or `awk` or upgraded to Python 3.
+* `ed` is no longer required due to an increasing number of distros
+  not supplying it in the base package.
+* `seq`, `shuf`, and `tac`, which are not POSIX standards, are no longer
+  required. They will be used if available, but `dr` now includes fallback
+  versions.
+* The `scripts` folder is no longer required in a dreamdir,
+  and `dr` does not need to access
+  any external files in the dreamdir besides the actual data.
+
+
+### Miscellaneous
+
+* Significant performance improvements to searching, syntax highlighting, and
+  other operations.
+* Code cleanup, test coverage improvements, and fixing of shellcheck errors.
+* The `scripts` directory has not been retested or reviewed, and no part of
+  `dr` itself depends on these anymore. Base your work on example scripts at
+  your own risk.
+
+
 Changes in 1.0.5
 ----------------
 
