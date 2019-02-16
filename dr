@@ -863,6 +863,7 @@ AWKSCRIPT
 # regenerate_tags()
 # Generate a ctags file for dreams. All header values are included.
 regenerate_tags() {
+    hash 'python3' || die "Please install 'python3' to use regenerate-tags."
     python3 <<PYTHONSCRIPT
 import os
 
