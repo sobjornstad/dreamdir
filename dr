@@ -80,6 +80,11 @@ check-validity      :: format sanity check: ensure all dreams have
 version             :: print version number of this 'dr'
 
 An action can be abbreviated by its initials (e.g., help: h, list-headers: lh).
+
+'dr' operates on the current directory if it is a dreamdir (i.e., it contains a
+file called '.dreamdir', contents unimportant). If the current directory is not
+a dreamdir but the environment variable DREAMDIR is defined, 'dr' operates on
+its value.
 USAGEMSG
     exit 0
 }
