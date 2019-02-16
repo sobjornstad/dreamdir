@@ -911,6 +911,11 @@ fi
 # Confirm that we've ended up in a dreamdir.
 [ -f .dreamdir ] || die "Please run this script from a dreamdir, or set the environment variable \$DREAMDIR to the path to your dreamdir."
 
+# Set DREAMDIR to the directory we decided to work in for the duration of the
+# script so anything we run in an external scripting language like awk or
+# python can access it.
+export DREAMDIR=$PWD
+
 # Figure out what action we're going to do and jump to appropriate code.
 [ -z "$1" ] && usagemsg
 action="$1"
