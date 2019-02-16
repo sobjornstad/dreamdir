@@ -23,7 +23,7 @@
 
 ##### CONSTANTS #####
 # application version
-declare -r MYVERSION="2.0.X-devel"
+declare -r MYVERSION="2.0.0"
 
 # matching pattern for dream files
 declare -r DREAMGLOB='[0-9][0-9][0-9][0-9][0-9].dre'
