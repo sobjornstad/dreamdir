@@ -681,8 +681,13 @@ dreamfind() {
 newdream() {
     local today; local lastNum; local newNum
     today=$(date '+%Y-%m-%d')
-    lastNum=$(find $DREAMGLOB | sort | tail -n 1 | cut -c 1-5)
-    [ -f $lastNum.dre ] || die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
+    lastNum=$(find . -maxdepth 1 -name "$DREAMGLOB" | sort | tail -n 1 | cut -c 3-7)
+    if [ -z "$lastNum" ]; then
+        # initializing dreamdir
+        lastNum=0
+    elif [ ! -f "$lastNum.dre" ]; then
+        die "Unable to correctly find last dream number. Please ensure no non-dream files in the dreamdir end with '.dre'. (Pulled '$lastNum'.)"
+    fi
     newNum=$((10#$lastNum + 1))
     printf -v newNum '%05d' "$newNum"
 
