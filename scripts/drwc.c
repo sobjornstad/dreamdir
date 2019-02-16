@@ -57,9 +57,9 @@ const char *USAGE_MSG =
   "-p   Pretty-print results, rather than showing the machine-readable format.\n"
   "-s   Display only the total (summary) word count, not each file's count.\n"
   "\n"
-  "Counts are always shown in the order <normal> <lucid> <notes> <total>, with\n"
-  "gaps for any counts that are not included. The machine-readable format is\n"
-  "separated by spaces; the pretty format is separated by newlines and has labels.\n"
+  "Counts are always shown in the order <normal> <lucid> <notes> <total>. The\n"
+  "machine-readable format is separated by spaces; the pretty format is\n"
+  "separated by newlines and has labels.\n"
   "\n"
   "If none of -nlot are used, all four counts will be shown.\n";
 

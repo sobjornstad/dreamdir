@@ -327,7 +327,8 @@ fn_check() {
 	People:	M
 	Tags:	foo, bar baz, foobar
 	
-	EXPECTED)
+	EXPECTED
+    )
     run dr dump-headers 0000[48]
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
@@ -368,7 +369,8 @@ fn_check() {
 	expected=$(cat <<-EXPECTED
 	1: Albert Einstein
 	4: Q
-	EXPECTED)
+	EXPECTED
+    )
 	# There is nothing for 5, because it doesn't have a People header at all;
 	# we might want to change this behavior later, but it's considered correct
 	# for now.
@@ -383,7 +385,8 @@ fn_check() {
 	6: MN, OC, TML
 	7: OC
 	8: M
-	EXPECTED)
+	EXPECTED
+    )
 	run dr get-header People
 	[ "$status" == 0 ]
 	[ "$output" == "$expected" ]
@@ -394,21 +397,24 @@ fn_check() {
 	expected=$(cat <<-EXPECTED
 	Sunnyside
 	VHS
-	EXPECTED)
+	EXPECTED
+    )
 	[ "$output" == "$expected" ]
 
 	run dr hv -f Places
 	expected=$(cat <<-EXPECTED
 	      3 Sunnyside
 	      1 VHS
-	EXPECTED)
+	EXPECTED
+    )
 	[ "$output" == "$expected" ]
 
 	run dr header-values -f Places 1 6-
 	expected=$(cat <<-EXPECTED
 	      1 Sunnyside
 	      1 VHS
-	EXPECTED)
+	EXPECTED
+    )
 	[ "$output" == "$expected" ]
 }
 
@@ -442,9 +448,10 @@ fn_check() {
 	Lucid:	6
 	Notes:	5
 	Total:	29
-	EXPECTED)
-	run dr word-count 1 last
+	EXPECTED
+    )
+	run dr word-count -o -p 1 last
 	[ "$output" == "$expected" ]
-	run dr wc 1 last
+	run dr wc -o -p 1 last
 	[ "$output" == "$expected" ]
 }

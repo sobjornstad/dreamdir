@@ -51,12 +51,15 @@ find                :: show numbers of matching dreams
 filename-display    :: print filenames of matching dreams
 get-header <header> :: print values of <header> for matching dreams (no line is
                        printed for matching dreams that have no such <header>)
-header-values [-f] <header> :: show a list of all values used for <header>
+header-values
+    [-f] <header>   :: show a list of all values used for <header>
                        in matching dreams (include frequency if -f specified)
 list-headers [-f]   :: list headers used in at least one matching dream
                        (include frequency if -f specified)
-word-count          :: show word count of the specified dreams, not
-                       including headers
+word-count
+    [-o <opts>]     :: call 'drwc' to show word count of the specified
+                       dreams, not including the headers; '-o' passes through
+                       options to 'drwc', pass '-o -h' for help on options
 winnow              :: read filenames from stdin and write only those matching
                        this expression to stdout (to create AND queries)
 
@@ -182,11 +185,13 @@ dr edit tagged Tags '^cat$'   :: edit dreams tagged with 'cat', but not
 dr filename-display 610-629 | :: see a list of all the places used in dreams
   dr winnow t Tags 'dog' |       #610-629 that have a tag containing the
   dr act header-values Places    substring 'dog'
-dr wc                         :: display a word count of all dreams
+dr word-count                 :: display a word count of all dreams
 dr wc -sl 12 all              :: display the word count of 12 random dreams
 dr list-headers -f 500- |     :: show what headers you've used more than 50
-  awk '\$1 > 50'                 times (e.g., 'Date', 'Id', 'Tags') in dreams
+  awk '\$1 > 50'                  times (e.g., 'Date', 'Id', 'Tags') in dreams
                                  500 and newer
+dr wc -o -lt 50-100 |         :: calculate the ratio of lucid words to total
+  awk '/total/{ print \$1/\$2}'    words in dreams 50-100
 dr fd tagged People Maud |    :: copy dreams Maud appears in into the
   xargs cp -t maud-dreams        'maud-dreams' folder
 USAGEMSG
@@ -430,38 +435,13 @@ getrange() {
 # Call an appropriate program to return a word count.
 #
 # Arguments:
-# $1 - "t" for machine-readable summary of all dreams combined
-#          (normal lucid notes total)
-#      "p" for pretty-printed complete display
-# (variable) dream filenames to pass to the word count program
+# $1 - string containing arguments to drwc
+# $2 - space-separated list of dream filenames to pass to drwc
+# shellcheck disable=2068
+# :: we want to split everything here, as we're just breaking it out to drwc
 drwordcount() {
-    local params
-    if [ "$1" = "p" ]; then
-        params="-p"
-    elif [ "$1" = "t" ]; then
-        params="-s"
-    else
-        die "Illegal arguments to drwordcount()!"
-    fi
-    shift
-
-    # shellcheck disable=2068
-    # :: word splitting on $@ is, in a rare happening, correct
-    if [ -x "scripts/bin/drwc" ]; then
-        scripts/bin/drwc $params $@
-    else
-        if [ "$params" = "-p" ]; then
-            python2 <<WC_END
-import scripts.ddirparse as dp
-print dp.getCount("$@".split(' '), asPrettyString=True)
-WC_END
-        else
-            python2 <<WC_END
-import scripts.ddirparse as dp
-print dp.getCount("$@".split(' '), asString=True)
-WC_END
-        fi
-    fi
+    hash 'drwc' || die "Please install drwc to use the word count function."
+    drwc $1 $2
 }
 
 
@@ -1060,8 +1040,17 @@ case "$action" in
     ;;
 
 "word-count"|"wc")
+    if [ "$1" = "-o" ]; then
+        drwc_args=$2
+        shift 2
+    fi
+
     dreamfind "$@"
-    drwordcount "p" "$args"
+    if [ -n "$drwc_args" ]; then
+        drwordcount "$drwc_args" "$args"
+    else
+        drwordcount "$args"
+    fi
     ;;
 
 "regenerate-tags"|"rt")
