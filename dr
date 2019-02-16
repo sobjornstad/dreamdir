@@ -73,7 +73,7 @@ help                :: show this usage message
 header-replace      :: regex search-and-replace on headers; type
                        '$(basename "$0") help header-replace' for info
 new                 :: create a new dream with the next available ID
-                       number and open it for editing
+                       number and open it for editing; see 'dr help new'
 regenerate-tags     :: regenerate ctags file '.dreams.ctags' in the dreamdir
 check-validity      :: format sanity check: ensure all dreams have
                        IDs and dates and ID numbers are contiguous
@@ -254,6 +254,25 @@ dreamdir.)
 USAGEMSG
 }
 
+usagemsg_new() {
+    cat <<USAGEMSG
+                             DR - NEW
+$(basename "$0") new
+
+Create a new dream file using the next unused ID number and open it in \$EDITOR.
+
+If the dream file is unchanged when you exit your editor, it will be deleted.
+
+The template by default contains Id, Date, and Tags headers, with Id and Date
+autofilled. You can customize the template by creating a .dream_template file
+in the root of your dreamdir. This file will be copied to create a new dream.
+
+You can include the following variables in your template:
+\$id     :: will be replaced with the ID number of the new dream (the same as the
+            filename without the extension)
+\$today  :: today's date in YYYY-MM-DD format
+USAGEMSG
+}
 
 ##### UTILITY FUNCTIONS #####
 # die()
@@ -667,18 +686,21 @@ newdream() {
     newNum=$((10#$lastNum + 1))
     printf -v newNum '%05d' "$newNum"
 
-    # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
-    cat <<NEWDREAM >"$newNum.dre" 2>&1
-Id:	$newNum
-Date:	$today
-Time:	
-Title:	
-People:	
-Places:	
+    if [ -f ".dream_template" ]; then
+        cp ".dream_template" "$newNum.dre"
+    else
+        # http://unix.stackexchange.com/questions/88490/how-do-you-use-output-redirection-in-combination-with-here-documents-and-cat
+        cat <<NEWDREAM >"$newNum.dre" 2>&1
+Id:	\$id
+Date:	\$today
 Tags:	
 
 
 NEWDREAM
+    fi
+
+    sed -i -e "s/\\\$id/$newNum/" "$newNum.dre"
+    sed -i -e "s/\\\$today/$today/" "$newNum.dre"
     cp "$newNum.dre" "/tmp/$newNum.dre"
 
     if [ "$EDITOR" = "vim" ]; then
@@ -1093,6 +1115,8 @@ case "$action" in
             usagemsg_edit ;;
         "header-replace"|"hr")
             usagemsg_header_replace ;;
+        "new"|"n")
+            usagemsg_new ;;
         *)
             usagemsg ;;
     esac

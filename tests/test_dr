@@ -55,10 +55,6 @@ helptest() {
 	expected=$(cat <<-EXPECTED
 	Id:	00010
 	Date:	$(date '+%Y-%m-%d')
-	Time:	
-	Title:	
-	People:	
-	Places:	
 	Tags:	
 
 
