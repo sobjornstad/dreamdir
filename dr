@@ -1049,7 +1049,7 @@ case "$action" in
     getHeader=$1
     shift
     dreamfind "$@"
-    grep "$getHeader:	" $args | sed -e "s/$getHeader:	\(.*\)/\1/" -e 's/^00*\([0-9]\+\).dre:/\1: /'
+    grep "$getHeader:	" $args | sed -Ee "s/$getHeader:	(.*)/\1/" -e 's/^00*([0-9]+).dre:/\1: /'
     ;;
 
 "dump-headers"|"dh")
