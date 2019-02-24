@@ -293,6 +293,24 @@ die() {
     exit $ret
 }
 
+# trim()
+# Remove leading and trailing whitespace from a variable.
+# https://stackoverflow.com/a/3352015
+#
+# Arguments:
+# $* - the string to trim
+#
+# Output:
+#     the trimmed string
+trim() {
+    local str="$*"
+    # remove leading whitespace characters
+    str="${str#"${str%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    str="${str%"${str##*[![:space:]]}"}"
+    echo -n "$str"
+}
+
 # numerize()
 # Display some string in singular or plural as appropriate.
 #
@@ -640,7 +658,6 @@ dreamfind() {
                 # match '@@@@@' as BOL/EOL and not cross it with '.'.
                 local pattern
                 pattern=$(sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/' <<<"$searchpat")
-                echo "pattern is $pattern"
                 newargs=$(grep "$header:	" $DREAMGLOB |
                     sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
                     grep -E "[0-9]{5}\.dre:.*$pattern" |
@@ -766,7 +783,7 @@ header_replace() {
     # If we're actually making changes, confirm that we really want to.
     local numToChange
     if [ $doChange -eq 1 ]; then
-        numToChange=$(wc -w <<<"$args")
+        numToChange=$(trim "$(wc -w <<<"$args")")
         echo "You are about to apply a search-and-replace that will affect" \
         "$numToChange $(numerize "$numToChange" dream)."
         if [ $numToChange -ge 50 ]; then
@@ -1003,7 +1020,7 @@ case "$action" in
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(defileify $args)"
-    numMatches="$(wc -w <<<"$results")"
+    numMatches=$(trim "$(wc -w <<<"$results")")
     echo -e "$numMatches $(numerize $numMatches "match" "matches"): [$results]"
     ;;
 
