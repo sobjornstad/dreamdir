@@ -38,6 +38,25 @@ helptest() {
     [ "$output" == "$result" ]
 }
 
+
+# trim()
+# Remove leading and trailing whitespace from a variable.
+# https://stackoverflow.com/a/3352015
+#
+# Arguments:
+# $* - the string to trim
+#
+# Output:
+#     the trimmed string
+trim() {
+    local str="$*"
+    # remove leading whitespace characters
+    str="${str#"${str%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    str="${str%"${str##*[![:space:]]}"}"
+    echo -n "$str"
+}
+
 @test "dr help - help & usage messages" {
     # The helptest function extracts the actual help text from the script, so
     # it should not go out of date unless the format of the heredocs changes.
@@ -100,14 +119,14 @@ fn_test() {
 fn_check() {
     local desiredResult="$1"
     local output="$2"
-    local numMatches=$(echo "$desiredResult" | wc -w)
+    local numMatches=$(trim "$(echo "$desiredResult" | wc -w)")
     if [ "$desiredResult" == "NOMATCH" ]; then
         local match="No results."
     else
-        if [ "$numMatches" == 1 ]; then
-            local match="$numMatches match: [$desiredResult]" 
+        if [ $numMatches -eq 1 ]; then
+            local match="$numMatches match: [$desiredResult]"
         else
-            local match="$numMatches matches: [$desiredResult]" 
+            local match="$numMatches matches: [$desiredResult]"
         fi
     fi
 
