@@ -348,7 +348,7 @@ numerize() {
 # Arguments:
 # (variable number) - the files to process
 defileify() {
-    sed -e 's/\(^\| \)00*/\1/g' -e 's/\.dre/,/g' -e 's/,$//' <<<"$@"
+    sed -Ee 's/(^|[[:space:]])00*/\1/g' -e 's/\.dre/,/g' -e 's/,$//' <<<"$@"
 }
 
 # colorify()
