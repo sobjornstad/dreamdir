@@ -631,7 +631,7 @@ dreamfind() {
                     then newsearchpat="${newsearchpat:0: -1}"
                     else newsearchpat="${newsearchpat}"'.*'
                 fi
-                newargs=$(grep -Em 1 "$header:	$newsearchpat" $DREAMGLOB |
+                newargs=$(grep -E "$header:	$newsearchpat" $DREAMGLOB |
                     sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
             else
                 # Comma-separated match. The idea here is to replace the
@@ -640,7 +640,8 @@ dreamfind() {
                 # match '@@@@@' as BOL/EOL and not cross it with '.'.
                 local pattern
                 pattern=$(sed -e 's/[$^]/@@@@@/' -e 's/\$/[$@]/' -e 's/\./[^@]/' <<<"$searchpat")
-                newargs=$(grep -m 1 "$header:	" $DREAMGLOB |
+                echo "pattern is $pattern"
+                newargs=$(grep "$header:	" $DREAMGLOB |
                     sed -e "s/$header:	/@@@@@/" -e 's/, /@@@@@/g' -e 's/$/@@@@@/' |
                     grep -E "[0-9]{5}\.dre:.*$pattern" |
                     sed -e 's/\([0-9]\{5\}\.dre\):.*/\1/')
@@ -783,7 +784,7 @@ header_replace() {
     local numAffected=0
     for filename in $args; do
         local headerline; local oldtags; local newtags; local diffs
-        headerline=$(grep -m 1 "$header:	" "$filename")
+        headerline=$(grep "$header:	" "$filename")
         oldtags=$(sed -e "s/$header:	//" -e 's/, /\n/g' <<<"$headerline")
         newtags=$(sed -re "s@$searchpat@$replpat@g" <<<"$oldtags")
         diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed -e '1,2d' -e 's/^/  /')
