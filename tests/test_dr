@@ -49,12 +49,14 @@ helptest() {
 # Output:
 #     the trimmed string
 trim() {
-    local str="$*"
-    # remove leading whitespace characters
-    str="${str#"${str%%[![:space:]]*}"}"
-    # remove trailing whitespace characters
-    str="${str%"${str##*[![:space:]]}"}"
-    echo -n "$str"
+    while read -r line; do
+        local str=$line
+        # remove leading whitespace characters
+        str="${str#"${str%%[![:space:]]*}"}"
+        # remove trailing whitespace characters
+        str="${str%"${str##*[![:space:]]}"}"
+        echo "$str"
+    done
 }
 
 @test "dr help - help & usage messages" {
@@ -119,7 +121,7 @@ fn_test() {
 fn_check() {
     local desiredResult="$1"
     local output="$2"
-    local numMatches=$(trim "$(echo "$desiredResult" | wc -w)")
+    local numMatches=$(echo "$desiredResult" | wc -w | trim)
     if [ "$desiredResult" == "NOMATCH" ]; then
         local match="No results."
     else
@@ -418,19 +420,21 @@ fn_check() {
 
 	run dr hv -f Places
 	expected=$(cat <<-EXPECTED
-	      3 Sunnyside
-	      1 VHS
+	3 Sunnyside
+	1 VHS
 	EXPECTED
     )
-	[ "$output" == "$expected" ]
+	[ "$(trim <<<"$output")" == "$expected" ]
 
+    #TODO: trim is only working on t he whole thing, not per line,
+    #should update to pipe by line or something
 	run dr header-values -f Places 1 6-
 	expected=$(cat <<-EXPECTED
-	      1 Sunnyside
-	      1 VHS
+	1 Sunnyside
+	1 VHS
 	EXPECTED
     )
-	[ "$output" == "$expected" ]
+	[ "$(trim <<<"$output")" == "$expected" ]
 }
 
 @test "dr list-headers - show all headers used in specified dreams" {
