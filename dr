@@ -802,7 +802,8 @@ header_replace() {
     for filename in $args; do
         local headerline; local oldtags; local newtags; local diffs
         headerline=$(grep "$header:	" "$filename")
-        oldtags=$(sed -e "s/$header:	//" -e 's/, /\n/g' <<<"$headerline")
+        oldtags=$(sed -e "s/$header:	//" -e 's/, /\
+/g' <<<"$headerline")
         newtags=$(sed -re "s@$searchpat@$replpat@g" <<<"$oldtags")
         diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed -e '1,2d' -e 's/^/  /')
 
@@ -1066,10 +1067,11 @@ case "$action" in
     ;;
 
 "cat"|"c")
-    # shellcheck disable=SC2016
-    # :: Indeed, expressions don't expand in single quotes. That's the point!
-    # See https://unix.stackexchange.com/a/212949 on this funky paste usage.
-    mainCmd=': | paste -sd "\n" $(sed $"s/\s/ - - /g" <<< $args)'
+    dreamfind "$@"
+
+    # paste files together with double newlines
+    # https://unix.stackexchange.com/a/204232
+    mainCmd="awk '(NR>1 && FNR==1) {printf (\"\n\n\")}; 1' $args"
 
     # add color if running in an interactive terminal
     [ -t 1 ] && highlightCmd='| colorify'
@@ -1081,7 +1083,6 @@ case "$action" in
     fi
 
     # evaluate pipeline with appropriate parts
-    dreamfind "$@"
     eval "$mainCmd $highlightCmd $foldCmd"
     ;;
 
@@ -1113,7 +1114,8 @@ case "$action" in
     shift
     dreamfind "$@"
 
-    results=$(grep "$header:	" $args | sed -e 's/.*:	//' -e 's/, /\n/g' | sort)
+    results=$(grep "$header:	" $args | sed -e 's/.*:	//' -e 's/, /\
+/g' | sort)
     if [ $showfreq -eq 1 ]; then
         uniq -c <<<"$results" | sort -b -k 1rn -k 2
     else
