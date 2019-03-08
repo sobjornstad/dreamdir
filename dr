@@ -474,7 +474,7 @@ getrange() {
     [ -n "$startat" ] || die "No results."
     [ -n "$endat" ] || die "No results."
     # seq is marginally faster, but we can work around it if unavailable
-    if hash seq; then
+    if hash seq 2>/dev/null; then
         seq -f '%05g.dre' "$startat" "$endat"
     else
         for ((i=startat; i<=endat; ++i)); do
@@ -492,7 +492,7 @@ getrange() {
 # shellcheck disable=2068
 # :: we want to split everything here, as we're just breaking it out to drwc
 drwordcount() {
-    hash 'drwc' || die "Please install drwc to use the word count function."
+    hash 'drwc' 2>/dev/null || die "Please install drwc to use the word count function."
     drwc $1 $2
 }
 
@@ -591,7 +591,7 @@ dreamfind() {
             else
                 howMany=1
             fi
-            newargs=$(find $DREAMGLOB | shuf | head -n "$howMany" | sort)
+            newargs=$(find $DREAMGLOB | shufw | head -n "$howMany" | sort)
             ;;
 
         "all"|"a")
@@ -692,8 +692,8 @@ dreamfind() {
     if [ $invert -eq 1 ]; then
         args=$(comm -3 <(find $DREAMGLOB | tr ' ' '\n' | sort) <(tr ' ' '\n' <<<"$args" | sort))
     fi
-    [ $df_doReverse -eq 1 ] && args=$(tr ' ' '\n' <<<"$args" | tac)
-    [ $df_doShuf -eq 1 ]    && args=$(tr ' ' '\n' <<<"$args"  | shuf)
+    [ $df_doReverse -eq 1 ] && args=$(tr ' ' '\n' <<<"$args" | tacw)
+    [ $df_doShuf -eq 1 ]    && args=$(tr ' ' '\n' <<<"$args"  | shufw)
     [ $limit -ne 0 ]        && args=$(tr ' ' '\n' <<<"$args"  | head -n $limit)
 
     # sanity check
@@ -919,7 +919,7 @@ AWKSCRIPT
 # regenerate_tags()
 # Generate a ctags file for dreams. All header values are included.
 regenerate_tags() {
-    hash 'python3' || die "Please install 'python3' to use regenerate-tags."
+    hash 'python3' 2>/dev/null || die "Please install 'python3' to use regenerate-tags."
     python3 <<PYTHONSCRIPT
 import os
 
@@ -981,9 +981,9 @@ export DREAMDIR=$PWD
 # Set up POSIX-compliant proxies if unavailable on the system.
 # shellcheck disable=SC2120
 # :: not using arguments *now*, but we need $@ there to work right all the time
-shuf() {
-    if hash shuf; then
-        command shuf "$@"
+shufw() {
+    if hash shuf 2>/dev/null; then
+        shuf "$@"
     else
         # https://stackoverflow.com/a/30133294/1938956
         awk 'BEGIN {srand(); OFMT="%.17f"} {print rand(), $0}' "$@" |
@@ -993,9 +993,9 @@ shuf() {
 }
 
 # shellcheck disable=SC2120
-tac() {
-    if hash tac; then
-        command tac "$@"
+tacw() {
+    if hash tac 2>/dev/null; then
+        tac "$@"
     else
         # https://catonmat.net/sed-one-liners-explained-part-one
         sed '1!G;h;$!d'
@@ -1040,8 +1040,8 @@ case "$action" in
     dreamfind "$@"
     results=$(comm -12 <(tr ' ' '\n' <<<"$toFilter" | sort) <(tr ' ' '\n' <<<"$args" | sort))
     # since comm needs sorted content, we have to reapply the order changes
-    [ $df_doReverse -eq 1 ] && results=$(tac <<<"$results")
-    [ $df_doShuf -eq 1 ]    && results=$(shuf <<<"$results")
+    [ $df_doReverse -eq 1 ] && results=$(tacw <<<"$results")
+    [ $df_doShuf -eq 1 ]    && results=$(shufw <<<"$results")
     echo "$results"
     ;;
 
