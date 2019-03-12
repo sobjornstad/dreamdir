@@ -851,7 +851,7 @@ AWKSCRIPT
 
     # Check for empty dreamfiles. Awk will completely pass over them, so it's
     # important to ensure this is correct first.
-    mapfile errors < <(find $DREAMGLOB -size 0 -printf "%p: File is empty\n")
+    mapfile errors < <(find $DREAMGLOB -size 0 | sed -e 's/$/: File is empty/')
 
     # Check for missing ID field.
     mapfile -O "${#errors[@]}" errors < <(awk -f - <<AWKSCRIPT $DREAMGLOB
