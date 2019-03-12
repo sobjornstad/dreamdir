@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shellcheck disable=SC2086,SC1117,SC2119
 
 # %%% dr - Dreamdir utility program
