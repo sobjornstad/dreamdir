@@ -804,7 +804,7 @@ header_replace() {
         headerline=$(grep "$header:	" "$filename")
         oldtags=$(sed -e "s/$header:	//" -e 's/, /\
 /g' <<<"$headerline")
-        newtags=$(sed -re "s@$searchpat@$replpat@g" <<<"$oldtags")
+        newtags=$(sed -Ee "s@$searchpat@$replpat@g" <<<"$oldtags")
         diffs=$(diff -u <(echo "$oldtags") <(echo "$newtags") | grep '^[+-]' | sed -e '1,2d' -e 's/^/  /')
 
         if [ -z "$diffs" ]; then
@@ -1006,7 +1006,12 @@ tacw() {
 # but cannot take one on GNU sed! This lets us choose the right one.
 # https://stackoverflow.com/a/38595160
 sedi () {
-    sed --version >/dev/null 2>&1 && sed -i -- "$@" || sed -i "" "$@"
+    # --version is defined only on GNU
+    if sed --version >/dev/null 2>&1; then
+        sed -i -- "$@"
+    else
+        sed -i "" "$@"
+    fi
 }
 
 # Figure out what action we're going to do and jump to appropriate code.
