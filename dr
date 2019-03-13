@@ -732,8 +732,8 @@ Tags:
 NEWDREAM
     fi
 
-    sed -i -e "s/\\\$id/$newNum/" "$newNum.dre"
-    sed -i -e "s/\\\$today/$today/" "$newNum.dre"
+    sedi "s/\\\$id/$newNum/" "$newNum.dre"
+    sedi "s/\\\$today/$today/" "$newNum.dre"
     cp "$newNum.dre" "/tmp/$newNum.dre"
 
     if [ "$EDITOR" = "vim" ]; then
@@ -1000,6 +1000,13 @@ tacw() {
         # https://catonmat.net/sed-one-liners-explained-part-one
         sed '1!G;h;$!d'
     fi
+}
+
+# sed -i requires an empty argument on MacOS sed,
+# but cannot take one on GNU sed! This lets us choose the right one.
+# https://stackoverflow.com/a/38595160
+sedi () {
+    sed --version >/dev/null 2>&1 && sed -i -- "$@" || sed -i "" "$@"
 }
 
 # Figure out what action we're going to do and jump to appropriate code.
