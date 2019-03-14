@@ -1164,14 +1164,15 @@ case "$action" in
     [ -n "$1" ] || die "Usage: [chain of piped dr commands] | dr act <search action>"
     input=$(cat <&0)
     [ -n "$input" ] || die "No data received. (Usage: [chain of piped dr commands or list of filenames] | dr act <search action>)"
-    if [ "$1" = "edit" ]; then
-        # Work around broken terminal when stdin is being redirected, as
-        # recommended in the xargs man page and, e.g.:
-        # https://github.com/sitaramc/map/issues/1
-        "$0" "$@" $input </dev/tty
-    else
-        "$0" "$@" $input
-    fi
+    case $1 in
+        "edit"|"e")
+            # Work around broken terminal when stdin is being redirected, as
+            # recommended in the xargs man page and, e.g.:
+            # https://github.com/sitaramc/map/issues/1
+            "$0" "$@" $input </dev/tty ;;
+        *)
+            "$0" "$@" $input ;;
+    esac
     ;;
 
 "become-lucid"|"bl")
