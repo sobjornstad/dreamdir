@@ -1,3 +1,35 @@
+Changes in 2.1.0
+----------------
+
+This release of `dr` adds compatibility for MacOS.
+Previously I believed it would work, but had not tested it,
+    and as is typical in untested situations,
+    the reality proved more difficult!
+
+Gotchas:
+
+* If you are using GNU sed earlier than 4.2, you will need to update.
+  For that reason, I’m making this a minor version number increment.
+  This is because the `-r` ERE switch doesn’t work on MacOS
+  and the `-E` switch that does was only added to GNU sed in 4.2.
+  If you are unable to update,
+  changing this switch back should be a pretty easy patch.
+
+Fixes:
+
+* Don’t break terminal when `dr act e` is used to abbreviate `dr act edit`.
+* Removed reliance on several GNU extensions
+  I didn’t realize were GNU extensions,
+  particularly to sed.
+* Move almost entirely to using extended regular expressions,
+  as those seem to have a better cross-platform definition.
+* Handle differences in leading/trailing whitespace better.
+* Change shebang to /usr/bin/env bash.
+  This will make it easier to use a version of bash
+  other than the system default
+  if the system version is too old for `dr` (which needs at least 4.0).
+
+
 Changes in 2.0.0
 ----------------
 
