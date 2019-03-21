@@ -182,7 +182,7 @@ If you want to use the `word-count` functionality,
     then install the compiled `drwc` binary to your system path as well.
 
 If you want to use the ctags generation functionality,
-    make sure you have `python3` available on your path.
+    make sure you have `python3` available on your PATH.
 
 Finally, create a directory for your dreamdir and use `touch .dreamdir`
     to mark the directory as a dreamdir.
@@ -198,6 +198,29 @@ I keep my dreamdir under `git` control
     You may wish to do likewise.
 
 [PEBKAC]: https://en.wikipedia.org/wiki/User_error#Acronyms_and_other_names
+
+
+Installing on MacOS
+-------------------
+
+`dr` works great on MacOS,
+    but you will have to install newer versions of a couple of utilities.
+Installation through [Homebrew][] is recommended.
+After following the steps above:
+
+    brew install bash python bats
+
+Installation of `bats` is not required,
+    but it allows you to run `tests/test_dr`
+    to confirm you have all the right utilities
+    and your installation works correctly,
+    which may otherwise be difficult to do:
+
+    cd dreamdir
+    tests/test_dr
+
+[Homebrew]: https://brew.sh/
+
 
 Dependencies
 ------------
