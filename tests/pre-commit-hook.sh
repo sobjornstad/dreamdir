@@ -15,7 +15,7 @@ echo "OK"
 # requires GCC or equivalent compiler with c99 support
 echo -e "\nRebuilding C code to check for errors..."
 {
-cd scripts || exit 2
+cd drwc || exit 2
 make clean
 make || exit 1
 }

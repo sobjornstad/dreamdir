@@ -1,6 +1,9 @@
 *.svg
 *.un~
-*.dtags
+*.swp
 *.log
 *.pyc
+*.ctags
+*.dtags
 scripts/bin/*
+drwc/drwc

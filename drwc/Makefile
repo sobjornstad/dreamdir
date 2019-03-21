@@ -1,9 +1,9 @@
 .PHONY: all clean
 
-all: bin/drwc
+all: drwc
 
-bin/drwc: drwc.c
+drwc: drwc.c
 	gcc -Wall -std=c99 $^ -o $@
 
 clean:
-	rm -f bin/drwc
+	rm -f drwc
