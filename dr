@@ -802,6 +802,8 @@ header_replace() {
     for filename in $args; do
         local headerline; local oldtags; local newtags; local diffs
         headerline=$(grep "$header:	" "$filename")
+        # shellcheck disable=SC1004
+        # :: we actually do want a break within the single-quoted string for sed
         oldtags=$(sed -e "s/$header:	//" -e 's/, /\
 /g' <<<"$headerline")
         newtags=$(sed -Ee "s@$searchpat@$replpat@g" <<<"$oldtags")
@@ -1126,6 +1128,8 @@ case "$action" in
     shift
     dreamfind "$@"
 
+    # shellcheck disable=SC1004
+    # :: we actually do want a break within the single-quoted string for sed
     results=$(grep "$header:	" $args | sed -e 's/.*:	//' -e 's/, /\
 /g' | sort)
     if [ $showfreq -eq 1 ]; then
