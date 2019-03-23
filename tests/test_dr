@@ -5,6 +5,7 @@ setup() {
         echo "Please run tests from the project root."
         exit
     fi
+    export PROJECT_ROOT=$PWD
     cd ./tests/test_dreamdir
 }
 
@@ -32,7 +33,10 @@ helptest() {
     # IFS seems to be set so you can't split args like this by default
     IFS=' ' run $1
     local awkcode=$(echo "$MESSAGE_EXTRACTOR_AWK" | sed -e "s/FN_NAME/$2/")
-    local result=$(awk "$awkcode" < dr | sed -e 's/$(basename "$0")/dr/' | sed -e 's/\\\\/\\/g' | sed -e 's/\\\$/$/g')
+    local result=$(awk "$awkcode" < "$PROJECT_ROOT/dr" |
+	           sed -e 's/$(basename "$0")/dr/' |
+		   sed -e 's/\\\\/\\/g' |
+		   sed -e 's/\\\$/$/g')
     diff <(echo "$result") <(echo "$output")
     [ "$status" == 0 ]
     [ "$output" == "$result" ]
@@ -91,7 +95,8 @@ trim() {
 }
 
 @test "dr version - display the version number" {
-	expected_ver=$(grep "declare -r MYVERSION=" dr | sed -e 's/.*MYVERSION="\(.*\)"/\1/')
+	expected_ver=$(grep "declare -r MYVERSION=" "$PROJECT_ROOT/dr" |
+		       sed -e 's/.*MYVERSION="\(.*\)"/\1/')
 	run dr version
 	[ "$output" == "dr version $expected_ver" ]
 	run dr v
@@ -320,13 +325,14 @@ fn_check() {
 
 @test "dr cat - print specified dreams on stdout" {
     run dr cat 4
-    expected=$(echo -e "$(cat 00004.dre)\n\n")
+    expected=$(echo -e "$(cat 00004.dre | sed -Ee 's/\r+$//')\n")
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
 
     run dr c 0000[48]
     # 3x '\n': bash seems to automatically strip one of them
-    expected=$(echo -e "$(cat 00004.dre)\n\n\n$(cat 00008.dre)\n\n")
+    # sed: ignore differences in Windows/Unix line endings for tests on Windows
+    expected=$(echo -e "$(cat 00004.dre | sed -Ee 's/\r+$//')\n\n\n$(cat 00008.dre | sed -Ee 's/\r+$//')\n\n")
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
 }
@@ -359,7 +365,7 @@ fn_check() {
     expected=$(echo -e "4d3\n< pq")
 
     cp 00005.dre save.dre
-    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr edit 5
+    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ex' dr edit 5
     run diff 00005.dre save.dre 
     mv save.dre 00005.dre
     [ "$status" == 1 ]
@@ -367,7 +373,7 @@ fn_check() {
 
     # short version
     cp 00005.dre save.dre
-    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ed' dr e 5
+    echo -e "4\ni\npq\n.\nwq\n" | EDITOR='ex' dr e 5
     run diff 00005.dre save.dre 
     mv save.dre 00005.dre
     [ "$status" == 1 ]
@@ -447,7 +453,9 @@ fn_check() {
 	[ "$output" == "$expected" ]
 }
 
+
 @test "dr word-count - count different kinds of words in specified dreams" {
+	[ "$runPlatform" = "Windows" ] && skip
 	expected=$(cat <<-EXPECTED
 	
 	~ 00001.dre ~
