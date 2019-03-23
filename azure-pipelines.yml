@@ -11,9 +11,18 @@ pool:
   
 steps:
 - bash: |
-    sudo apt-get install bats shellcheck
+    # install BATS
+    sudo apt-get install bats
+
+    # install shellcheck
+    export scversion="v0.5.0"
+    wget -qO- "https://storage.googleapis.com/shellcheck/shellcheck-"${scversion}".linux.x86_64.tar.xz" | tar -xJv
+    cp shellcheck-"${scversion}"/shellcheck /usr/bin/
     shellcheck --version
-  displayName: 'Install shell analysis and testing tools'
+
+    # set environment variables
+    echo "##vso[task.setvariable variable=PATH]$PATH:$PWD/drwc:$PWD/shellcheck-"${scversion}"/shellcheck:."
+  displayName: 'Set up testing environment'
 
 - bash: |
     make
@@ -21,8 +30,6 @@ steps:
   workingDirectory: $(Build.SourcesDirectory)/drwc
 
 - bash: |
-    export PATH="$PATH:./drwc:."
-    ls ./drwc
     tests/test_dr
   displayName: 'Run bats tests'
 
