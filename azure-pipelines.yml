@@ -17,10 +17,10 @@ steps:
 
 - bash: |
     sudo apt-get install bats
-    tests/test_dr
+    PATH="$PATH:." tests/test_dr
   displayName: 'Run bats tests'
 
 - bash: |
-    apt install shellcheck
-    shellcheck
+    sudo apt-get install shellcheck
+    shellcheck dr
   displayName: 'Run shellcheck'
