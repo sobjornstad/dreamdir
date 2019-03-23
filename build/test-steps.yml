@@ -10,5 +10,5 @@ steps:
 
   - script: |
       bats --version
-      tests/test_dr
+      tests/test_dr | tee tap.out
     displayName: 'Run bats tests'
