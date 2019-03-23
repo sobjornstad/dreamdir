@@ -2,7 +2,7 @@ steps:
   - script: make
     displayName: 'Build drwc to check for errors'
     workingDirectory: $(Build.SourcesDirectory)/drwc
-    condition: and(succeeded(), ne(variables['runPlatform'), "Windows")
+    condition: and(succeeded(), ne(variables['runPlatform'], "Windows")
 
   - script: |
       bats --version
