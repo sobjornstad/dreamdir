@@ -15,7 +15,8 @@ jobs:
           wget -qO- "https://storage.googleapis.com/shellcheck/shellcheck-"${scversion}".linux.x86_64.tar.xz" | tar -xJv
 
           # install TAP to JUnit converter for test results
-          sudo cpan install XML::Generator
+          wget -O - http://cpanmin.us | perl - --self-upgrade
+          sudo cpanm install XML::Generator
           git clone https://github.com/jmason/tap-to-junit-xml.git tapjunit
 
           # set environment variables
