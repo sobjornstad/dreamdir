@@ -1,0 +1,25 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-16.04
+
+steps:
+- bash: |
+    make
+  displayName: 'Build drwc to check for errors'
+  workingDirectory: $(Build.SourcesDirectory)/drwc
+
+- bash: |
+    tests/test_dr
+  displayName: 'Run bats tests'
+
+- bash: |
+    apt install shellcheck
+    shellcheck
+  displayName: 'Run shellcheck'
