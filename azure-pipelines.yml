@@ -11,8 +11,8 @@ pool:
 
 steps:
 - bash: |
-    export DEBIAN_FRONTEND=noninteractive # make apt-get shut up
-    DEBIAN_FRONTEND=noninteractive sudo apt-get install bats shellcheck
+    sudo apt-get install bats shellcheck
+    shellcheck --version
   displayName: 'Install shell analysis and testing tools'
 
 - bash: |
@@ -21,10 +21,10 @@ steps:
   workingDirectory: $(Build.SourcesDirectory)/drwc
 
 - bash: |
-    shellcheck dr
-  displayName: 'Run shellcheck'
-
-- bash: |
     export PATH="$PATH:./drwc:."
     tests/test_dr
   displayName: 'Run bats tests'
+
+- bash: |
+    shellcheck dr
+  displayName: 'Run shellcheck'
