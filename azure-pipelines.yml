@@ -11,19 +11,20 @@ pool:
 
 steps:
 - bash: |
+    export DEBIAN_FRONTEND=noninteractive # make apt-get shut up
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install bats shellcheck
+  displayName: 'Install shell analysis and testing tools'
+
+- bash: |
     make
   displayName: 'Build drwc to check for errors'
   workingDirectory: $(Build.SourcesDirectory)/drwc
 
 - bash: |
-    export PATH="$PATH:."
-    export DEBIAN_FRONTEND=noninteractive # make apt-get shut up
-    sudo apt-get install bats
-    tests/test_dr
-  displayName: 'Run bats tests'
-
-- bash: |
-    export DEBIAN_FRONTEND=noninteractive
-    sudo apt-get install shellcheck
     shellcheck dr
   displayName: 'Run shellcheck'
+
+- bash: |
+    export PATH="$PATH:./drwc:."
+    tests/test_dr
+  displayName: 'Run bats tests'
