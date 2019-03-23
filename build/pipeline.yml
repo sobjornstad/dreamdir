@@ -20,12 +20,11 @@ jobs:
           # install TAP to JUnit converter for test results
           sudo apt-get install cpanminus
           sudo cpanm install XML::Generator
-          git clone https://github.com/jmason/tap-to-junit-xml.git tapjunit
 
           # set environment variables
           # Our shellcheck comes before system shellcheck
           # (as they already have one on the MS image that's a painfully old version).
-          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/tapjunit:$PWD/drwc:."
+          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/build:$PWD/drwc:."
         displayName: 'Set up testing environment'
       - template: test-steps.yml
       - bash: |
