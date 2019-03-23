@@ -66,8 +66,5 @@ jobs:
           git clone https://github.com/bats-core/bats-core
           bats-core/install.sh "$HOME"
 
-          echo "##vso[task.setvariable variable=PATH]$PATH:$PWD"
-          echo "$PATH"
-      - bash: |
-          echo "$PATH"
+          #echo "##vso[task.setvariable variable=PATH]$PATH:$PWD"
       - template: test-steps.yml
