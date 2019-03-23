@@ -322,6 +322,8 @@ you’re doing you can save quite a few keystrokes this way.
 Support & Development
 =====================
 
+![Azure DevOps badge](https://dev.azure.com/thetechnicalgeekery/dreamdir/_apis/build/status/sobjornstad.dreamdir?branchName=master)
+
 Please post bugs on the Github issue tracker; if you prefer you can email me at
 `contact@sorenbjornstad.com`. If you have a problem with `dr`, please mention
 your operating system and version of bash.

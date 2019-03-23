@@ -1,0 +1,21 @@
+steps:
+  - script: make
+    displayName: 'Build drwc to check for errors'
+    workingDirectory: $(Build.SourcesDirectory)/drwc
+
+  - script: |
+      bats --version
+      tests/test_dr | tee $(tapFile)
+      tests/tap-to-junit-xml <$(tapFile) >$(JUnitFile)
+    displayName: 'Run bats tests'
+    # Continue even if an error is encountered, or the results won't get published!
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: $(JUnitFile)
+      testResultsFormat: JUnit
+      failTaskOnFailedTests: true
+      publishRunAttachments: true
+      testRunTitle: $(RunPlatform)
+      displayName: "Publish Test Results"
