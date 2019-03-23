@@ -10,5 +10,6 @@ steps:
 
   - script: |
       bats --version
-      tests/test_dr | tee tap.out
+      tests/test_dr | tee $(tapFile)
+      tests/tap-to-junit-xml <$(tapFile) >$(JUnitFile)
     displayName: 'Run bats tests'
