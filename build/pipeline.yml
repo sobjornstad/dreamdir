@@ -67,4 +67,7 @@ jobs:
           bats-core/install.sh "$HOME"
 
           echo "##vso[task.setvariable variable=PATH]$PATH:$PWD"
+          echo "$PATH"
+      - bash: |
+          echo "$PATH"
       - template: test-steps.yml
