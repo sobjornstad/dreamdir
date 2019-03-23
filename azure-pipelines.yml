@@ -22,8 +22,12 @@ steps:
     # Our shellcheck comes before system shellcheck
     # (as they already have one on the MS image that's a painfully old version).
     echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}"/shellcheck:$PATH:$PWD/drwc:."
-    shellcheck --version
   displayName: 'Set up testing environment'
+
+- bash: |
+    shellcheck --version
+    shellcheck dr
+  displayName: 'Run shellcheck'
 
 - bash: |
     make
@@ -33,7 +37,3 @@ steps:
 - bash: |
     tests/test_dr
   displayName: 'Run bats tests'
-
-- bash: |
-    shellcheck dr
-  displayName: 'Run shellcheck'
