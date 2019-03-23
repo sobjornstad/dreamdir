@@ -9,6 +9,8 @@ jobs:
   - job: Linux
     pool:
       vmImage: ubuntu-16.04
+    variables:
+        runPlatform: Linux
     steps:
       - bash: |
           # install BATS
@@ -27,4 +29,28 @@ jobs:
           # (as they already have one on the MS image that's a painfully old version).
           echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/drwc:."
         displayName: 'Set up testing environment'
+      - bash: |
+          # We only need to do the shellcheck step on one system.
+          # We'll do it on Linux, because Linux is awesome.
+          shellcheck --version
+          shellcheck dr
+        displayName: 'Run shellcheck'
+      - template: test-steps.yml
+
+  - job: MacOS
+    pool:
+      vmImage: macos-10.13
+    variables:
+        runPlatform: MacOS
+    steps:
+      - bash: |
+          # install TAP to JUnit converter for test results
+          brew install cpanm
+          cpanm install XML::Generator
+
+          # perform MacOS setup steps described in the dr documentation
+          brew install bash python3 bats
+
+          # set environment variables
+          echo "##vso[task.setvariable variable=PATH]$PATH:$PWD/drwc:."
       - template: test-steps.yml

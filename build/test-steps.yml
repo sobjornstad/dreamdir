@@ -1,9 +1,4 @@
 steps:
-  - script: |
-      shellcheck --version
-      shellcheck dr
-    displayName: 'Run shellcheck'
-
   - script: make
     displayName: 'Build drwc to check for errors'
     workingDirectory: $(Build.SourcesDirectory)/drwc
@@ -22,4 +17,5 @@ steps:
       testResultsFormat: JUnit
       failTaskOnFailedTests: true
       publishRunAttachments: true
+      testRunTitle: $(RunPlatform)
       displayName: "Publish Test Results"
