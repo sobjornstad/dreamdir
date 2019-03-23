@@ -2,7 +2,8 @@ trigger:
 - master
 
 variables:
-  tapFile: "$(Build.SourcesDirectory)/tap.out"
+  tapFile: "$(Build.SourcesDirectory)/tests/tap.out"
+  JUnitFile: "$(Build.SourcesDirectory)/tests/results.xml"
 
 jobs:
   - job: Linux
@@ -28,10 +29,10 @@ jobs:
         displayName: 'Set up testing environment'
       - template: test-steps.yml
       - bash: |
-          tap-to-junit-xml <$(tapfile)
+          tap-to-junit-xml <$(tapFile) >$(JUnitFile)
       - task: PublishTestResults@2
         inputs:
-          testResultsFiles: $(tapfile)
+          testResultsFiles: $(JUnitFile)
           testResultsFormat: JUnit
           #searchFolder: '$(System.DefaultWorkingDirectory)' # Optional
           #mergeTestResults: false # Optional
