@@ -25,3 +25,16 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/tapjunit:$PWD/drwc:."
         displayName: 'Set up testing environment'
       - template: test-steps.yml
+      - bash: |
+          tap-to-junit-xml <tap.out
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFiles: '**/TEST-*.xml' 
+          testResultsFormat: JUnit
+          #searchFolder: '$(System.DefaultWorkingDirectory)' # Optional
+          #mergeTestResults: false # Optional
+          #failTaskOnFailedTests: false # Optional
+          #testRunTitle: # Optional
+          #buildPlatform: # Optional
+          #buildConfiguration: # Optional
+          publishRunAttachments: true
