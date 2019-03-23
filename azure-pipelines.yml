@@ -16,6 +16,7 @@ steps:
   workingDirectory: $(Build.SourcesDirectory)/drwc
 
 - bash: |
+    apt install bats
     tests/test_dr
   displayName: 'Run bats tests'
 
