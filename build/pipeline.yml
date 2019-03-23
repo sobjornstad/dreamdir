@@ -54,3 +54,13 @@ jobs:
           # set environment variables
           echo "##vso[task.setvariable variable=PATH]$PATH:$PWD/drwc:$PWD"
       - template: test-steps.yml
+
+  - job: Windows
+    pool:
+      vmImage: win1803
+    variables:
+      runPlatform: Windows
+    steps:
+      - script: |
+          echo "##vso[task.setvariable variable=PATH]$PATH:$PWD"
+      - template: test-steps.yml
