@@ -7,3 +7,5 @@
 *.dtags
 scripts/bin/*
 drwc/drwc
+tests/tap.out
+tests/results.xml

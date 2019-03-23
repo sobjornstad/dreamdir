@@ -1,0 +1,30 @@
+trigger:
+- master
+
+variables:
+  tapFile: "$(Build.SourcesDirectory)/tests/tap.out"
+  JUnitFile: "$(Build.SourcesDirectory)/tests/results.xml"
+
+jobs:
+  - job: Linux
+    pool:
+      vmImage: ubuntu-16.04
+    steps:
+      - bash: |
+          # install BATS
+          sudo apt-get install bats
+
+          # install shellcheck
+          export scversion="v0.5.0"
+          wget -qO- "https://storage.googleapis.com/shellcheck/shellcheck-"${scversion}".linux.x86_64.tar.xz" | tar -xJv
+
+          # install TAP to JUnit converter for test results
+          sudo apt-get install cpanminus
+          sudo cpanm install XML::Generator
+
+          # set environment variables
+          # Our shellcheck comes before system shellcheck
+          # (as they already have one on the MS image that's a painfully old version).
+          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/drwc:."
+        displayName: 'Set up testing environment'
+      - template: test-steps.yml
