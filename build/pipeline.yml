@@ -27,7 +27,7 @@ jobs:
           # set environment variables
           # Our shellcheck comes before system shellcheck
           # (as they already have one on the MS image that's a painfully old version).
-          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/drwc:."
+          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/drwc:$PWD"
         displayName: 'Set up testing environment'
       - bash: |
           # We only need to do the shellcheck step on one system.
@@ -52,5 +52,5 @@ jobs:
           brew install bash python3 bats
 
           # set environment variables
-          echo "##vso[task.setvariable variable=PATH]$PATH:$PWD/drwc:."
+          echo "##vso[task.setvariable variable=PATH]$PATH:$PWD/drwc:$PWD"
       - template: test-steps.yml
