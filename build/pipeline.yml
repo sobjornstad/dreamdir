@@ -25,11 +25,11 @@ jobs:
           # set environment variables
           # Our shellcheck comes before system shellcheck
           # (as they already have one on the MS image that's a painfully old version).
-          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/build:$PWD/drwc:."
+          echo "##vso[task.setvariable variable=PATH]$PWD/shellcheck-"${scversion}":$PATH:$PWD/drwc:."
         displayName: 'Set up testing environment'
       - template: test-steps.yml
       - bash: |
-          tap-to-junit-xml <$(tapFile) >$(JUnitFile)
+          
       - task: PublishTestResults@2
         inputs:
           testResultsFiles: $(JUnitFile)
