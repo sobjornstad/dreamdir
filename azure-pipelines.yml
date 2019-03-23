@@ -16,11 +16,14 @@ steps:
   workingDirectory: $(Build.SourcesDirectory)/drwc
 
 - bash: |
+    export PATH="$PATH:."
+    export DEBIAN_FRONTEND=noninteractive # make apt-get shut up
     sudo apt-get install bats
-    PATH="$PATH:." tests/test_dr
+    tests/test_dr
   displayName: 'Run bats tests'
 
 - bash: |
+    export DEBIAN_FRONTEND=noninteractive
     sudo apt-get install shellcheck
     shellcheck dr
   displayName: 'Run shellcheck'
