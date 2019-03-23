@@ -4,7 +4,7 @@ steps:
     workingDirectory: $(Build.SourcesDirectory)/drwc
     condition: and(succeeded(), ne(variables.RunPlatform, 'Windows'))
 
-  - script: |
+  - bash: |
       bats --version
       tests/test_dr | tee $(tapFile)
       tests/tap-to-junit-xml <$(tapFile) >$(JUnitFile)
