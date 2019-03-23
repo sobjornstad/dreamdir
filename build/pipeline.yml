@@ -61,7 +61,7 @@ jobs:
     variables:
       runPlatform: Windows
     steps:
-      - script: |
+      - bash: |
           # install BATS
           git clone https://github.com/bats-core/bats-core
           bats-core/install.sh "$HOME"
