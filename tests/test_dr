@@ -332,7 +332,7 @@ fn_check() {
     run dr c 0000[48]
     # 3x '\n': bash seems to automatically strip one of them
     # sed: ignore differences in Windows/Unix line endings for tests on Windows
-    expected=$(echo -e "$(cat 00004.dre | sed -Ee 's/\r+$//')\n\n\n$(cat 00008.dre | sed -Ee 's/\r+$//')\n\n")
+    expected=$(echo -e "$(cat 00004.dre | sed -Ee $'s/\r+$//')\n\n\n$(cat 00008.dre | sed -Ee $'s/\r+$//')\n\n")
     [ "$status" == 0 ]
     [ "$output" == "$expected" ]
 }
