@@ -603,7 +603,7 @@ dreamfind() {
             [ -n "$3" ] || die "oops"
             operator=$2
             dateExpr=$3
-            [[ "$dateExpr" =~ [012][0-9][0-9][0-9]-[01][0-9]-[0123][0-9] ]] || die "Invalid date (use YYYY-MM-DD)."
+            myDate=$(date '+%Y-%m-%d' -d "$dateExpr" 2>/dev/null) || die "Invalid date expression '$dateExpr'. Try YYYY-MM-DD, or a phrase like 'today', 'last Monday', or 'June 7'."
             case $operator in
                 'gt'|'>')        awkop='>' ;;
                 'lt'|'<')        awkop='<' ;;
@@ -614,7 +614,7 @@ dreamfind() {
                 *)               die "Invalid operator!" ;;
             esac
 
-            newargs=$(awk "/Date:	/ { if (\$2 $awkop \"$dateExpr\") { print FILENAME } }" $DREAMGLOB)
+            newargs=$(awk "/Date:	/ { if (\$2 $awkop \"$myDate\") { print FILENAME } }" $DREAMGLOB)
             shift 2
             ;;
 

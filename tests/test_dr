@@ -243,6 +243,10 @@ fn_check() {
     fn_test "4, 5" date '=' 2011-05-06
     fn_test "4, 5" date '==' 2011-05-06
 
+    # date expressions
+    fn_test "4, 5" date eq "May 6, 2011"
+    fn_test NOMATCH date ge "last Thursday"
+
     # boundary conditions
     fn_test NOMATCH date gt 2011-05-08
     fn_test "8, 9" date ge 2011-05-08
