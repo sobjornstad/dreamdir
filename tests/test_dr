@@ -304,6 +304,16 @@ fn_check() {
     # again, no good way to test -s (randomize order)
 }
 
+@test "dr find -t - test getting totals from find" {
+    run dr find -t 1 2
+    [ "$status" == 0 ]
+    [ "$output" == "2 matches of 9 total dreams (22.22%): [1, 2]" ]
+
+    run dr find -t -rl 1 8 7
+    [ "$status" == 0 ]
+    [ "$output" == "1 match of 9 total dreams (11.11%): [7]" ]
+}
+
 @test "dr find format - test the format of output from find" {
     # This is implicitly tested already, but better to make it explicit.
     run dr find 1

@@ -50,7 +50,7 @@ cat [-f]            :: print all content of matching dreams on stdout; if -f,
                        fold lines to a maximum length of 80 characters
 dump-headers        :: print headers of matching dreams
 edit                :: pass matching dreams as args to \$EDITOR
-find                :: show numbers of matching dreams
+find [-t]           :: show numbers of matching dreams; with -t add total dreams
 filename-display    :: print filenames of matching dreams
 get-header <header> :: print values of <header> for matching dreams (no line is
                        printed for matching dreams that have no such <header>)
@@ -1032,11 +1032,23 @@ case "$action" in
     ;;
 
 "find"|"f")
+    if [ "$1" = "-t" ]; then
+        dreamfind last
+        totnum=$(defileify $args)
+        shift
+    fi
+
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(defileify $args)"
     numMatches=$(trim "$(wc -w <<<"$results")")
-    echo -e "$numMatches $(numerize $numMatches "match" "matches"): [$results]"
+    if [ -n "$totnum" ]; then
+        proportion=$((numMatches * 10000 / totnum))
+        tot=" of $totnum total dreams ($(printf "%d.%.2d" $((proportion/100)) $((proportion%100)))%)"
+    else
+        tot=""
+    fi
+    echo -e "$numMatches $(numerize $numMatches "match" "matches")$tot: [$results]"
     ;;
 
 "filename-display"|"fd")
