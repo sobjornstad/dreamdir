@@ -213,7 +213,7 @@ $(basename "$0") header-replace [-f] <header> <find> <replace> [<search-expr>]
 
 In dreams matching <search-expr>, replace instances of <find> in header
 <header> with <replace>.  <header> and <replace> are EREs; <find> is
-specifically an hregex (see 'help dr search' for more information).
+specifically an hregex (see 'dr help search' for more information).
 
 <find> will not match across commas, but it may match and change several tags
 separately.  For example, for the header 'Tags: bar, baz', we could find 'ba'
