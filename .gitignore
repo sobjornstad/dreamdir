@@ -9,3 +9,5 @@ scripts/bin/*
 drwc/drwc
 tests/tap.out
 tests/results.xml
+.mypy_cache/*
+.metadata.json

@@ -224,7 +224,7 @@ fn_check() {
     fn_test "7, 6, 7" tagged Tags 'rel.*ship' tagged People OC
 }
 
-@test "dr find date" {
+@test "dr find date - test of date range-based searches" {
     # the basics
     fn_test "1, 2, 3" date lt 2011-05-06
     fn_test "1, 2, 3, 4, 5" date le 2011-05-06
@@ -488,3 +488,37 @@ fn_check() {
 	run dr wc -o -p 1 last
 	[ "$output" == "$expected" ]
 }
+
+@test "dr tabulate - build a table with chosen columns for specified dreams" {
+    expected=$(cat <<-EXPECTED
+	ID     DATE        PEOPLE           PLACES     TAGS
+	00001  2011-05-01  Albert Einstein  Sunnyside  Mythbusters
+	00002  2011-05-01                              keyboard, discounts
+	00003  2011-05-01                              device
+	00004  2011-05-06  Q                Sunnyside  sex
+	EXPECTED
+    )
+    run dr tabulate Id,Date,People,Places,Tags 1-4
+
+    # ignore trailing whitespace...wow that was annoying to figure out, it was identical in bcompare when I copied it out of the terminal!
+    [ "$(sed 's/^[ \t]*//;s/[ \t]*$//' <<<"$output")" = "$(sed 's/^[ \t]*//;s/[ \t]*$//' <<<"$expected")" ]
+}
+
+@test "dr tabulate - build table from hard tabs" {
+    expected=$(cat <<-EXPECTED
+	ID	DATE	TAGS
+	00001	2011-05-01	Mythbusters
+	EXPECTED
+    )
+
+    run dr tabulate -r Id,Date,Tags 1-2
+}
+
+
+#    expected=$(cat <<-EXPECTED
+#	Id	Date	People	Places	Tags
+#	00001	2011-05-01	Albert Einstein		School	Mythbusters
+#	00002	2011-05-01			keyboard, discounts
+#	00003	2011-05-01			device
+#	00004	2011-05-06	Q	Sunnyside	sex
+#	EXPECTED
