@@ -1093,6 +1093,12 @@ case "$action" in
     ;;
 
 "cat"|"c")
+    # fold if requested; must be first or -f will be gobbled by dreamfind's getopts
+    if [ "$1" = "-f" ]; then
+        foldCmd="| fold -s"
+        shift
+    fi
+
     dreamfind "$@"
 
     # paste files together with double newlines
