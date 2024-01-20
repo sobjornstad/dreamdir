@@ -2,7 +2,7 @@
 # shellcheck disable=SC2086,SC1117,SC2119
 
 # %%% dr - Dreamdir utility program
-# Copyright (c) 2015-2019 Soren Bjornstad; see LICENSE for details.
+# Copyright (c) 2015-2022 Soren Bjornstad; see LICENSE for details.
 
 ##### NOTES ON SHELLCHECK DIRECTIVES #####
 # (For some stupid reason there can't be other comments between the shebang and
@@ -23,7 +23,7 @@
 
 ##### CONSTANTS #####
 # application version
-declare -r MYVERSION="2.1.0"
+declare -r MYVERSION="2.2.0"
 
 # matching pattern for dream files
 declare -r DREAMGLOB='[0-9][0-9][0-9][0-9][0-9].dre'
@@ -50,7 +50,7 @@ cat [-f]            :: print all content of matching dreams on stdout; if -f,
                        fold lines to a maximum length of 80 characters
 dump-headers        :: print headers of matching dreams
 edit                :: pass matching dreams as args to \$EDITOR
-find                :: show numbers of matching dreams
+find [-t]           :: show numbers of matching dreams; with -t add total dreams
 filename-display    :: print filenames of matching dreams
 get-header <header> :: print values of <header> for matching dreams (no line is
                        printed for matching dreams that have no such <header>)
@@ -59,6 +59,9 @@ header-values
                        in matching dreams (include frequency if -f specified)
 list-headers [-f]   :: list headers used in at least one matching dream
                        (include frequency if -f specified)
+tabulate [-rtw]
+    <headers>       :: show a table of matching dreams with columns for each
+                       <header>; type '$(basename "$0") help tabulate' for info
 word-count
     [-o <opts>]     :: call 'drwc' to show word count of the specified
                        dreams, not including the headers; '-o' passes through
@@ -117,6 +120,7 @@ results are concatenated.
   * d[ate] <op> <date> :: select dreams by date; <op> is 'gt', 'ge', 'lt',
                       'le', 'eq', or 'ne' or the usual symbolic equivalents
                       (>, >=, <, <=, =, !=), and <date> is in YYYY-MM-DD format
+                      [requires GNU-compatible 'date -d' option on your system]
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
                       file (whether in headers, notes, or text)
   * t[agged] [-f] <header> <hregex> :: select dreams with <header> matching
@@ -213,7 +217,7 @@ $(basename "$0") header-replace [-f] <header> <find> <replace> [<search-expr>]
 
 In dreams matching <search-expr>, replace instances of <find> in header
 <header> with <replace>.  <header> and <replace> are EREs; <find> is
-specifically an hregex (see 'help dr search' for more information).
+specifically an hregex (see 'dr help search' for more information).
 
 <find> will not match across commas, but it may match and change several tags
 separately.  For example, for the header 'Tags: bar, baz', we could find 'ba'
@@ -266,6 +270,7 @@ Create a new dream file using the next unused ID number and open it in \$EDITOR.
 
 If the dream file is unchanged when you exit your editor, it will be deleted.
 
+                             CONFIGURATION
 The template by default contains Id, Date, and Tags headers, with Id and Date
 autofilled. You can customize the template by creating a .dream_template file
 in the root of your dreamdir. This file will be copied to create a new dream.
@@ -274,6 +279,63 @@ You can include the following variables in your template:
 \$id     :: will be replaced with the ID number of the new dream (the same as the
             filename without the extension)
 \$today  :: today's date in YYYY-MM-DD format
+USAGEMSG
+}
+
+usagemsg_tabulate() {
+    cat <<USAGEMSG
+                             DR - TABULATE
+$(basename "$0") tabulate [-rtw] <comma-separated-headers> [<search-expr>]
+
+Print a table of matching dreams, with one row for each dream and one column for
+each of the <comma-separated-headers> supplied.
+
+                             OPTIONS
+  -r :: Raw mode: separate columns with hard tab characters, rather than
+        automatically sizing columns and filling with spaces. (This is
+        useful if you want to pipe the output to another program or copy it
+        into a spreadsheet.)
+  -t :: Truncate excessively long cells so that the table is no wider than your
+        terminal.
+  -w :: Wrap excessively long cells onto multiple lines so that the table is no
+        wider than your terminal.
+
+Only one of these options makes sense at a time; if more than one is specified,
+the one highest in the list above wins.
+
+The options -t and -w are only supported if the 'column' utility is installed on
+your system and knows how to perform the relevant formatting tasks (this is
+not true on macOS's version, for instance).
+
+    $(if hash column 2>/dev/null && column --version >/dev/null 2>&1; then
+        echo -e "** This system $(tput setaf 2)SUPPORTS$(tput sgr0) the -t and -w options. **";
+      else
+        echo "** This system $(tput setaf 1)DOES NOT SUPPORT$(tput sgr0) the -t and -w options. **";
+      fi)
+
+                             CONFIGURATION
+By default, the "Id" and "Date" columns will not be truncated or wrapped when
+-t or -w is used. You can customize this behavior by creating a
+.unwrappable_headers file in your dreamdir containing a list of header names
+that are not allowed to wrap, one per line.
+
+                             EXAMPLES
+dr tabulate Id,Date,Title l 100
+    :: Print a table of the ID numbers, dates, and titles of the last 100
+       dreams recorded.
+
+dr tabulate -w Id,Title,People,Places t Tags travel
+    :: Print a table of the ID numbers, titles, people and places of dreams
+       tagged with 'travel', wrapping lines as needed.
+
+dr tabulate -r Id,Date,Title,People,Places |
+  awk -F $'\t' 'patsplit(\$4, arr, /,/) == 1 { print \$0 }' |
+  column -ts $'\t'
+    :: Print a table of the ID numbers, dates, titles, people and places of
+       dreams which tag precisely two people (i.e., the People header contains
+       exactly one comma). Note the use of '-r', followed by manually
+       reformatting the table, so 'awk' can tell where the columns begin and
+       end.
 USAGEMSG
 }
 
@@ -459,7 +521,7 @@ ENDSCRIPT
 # $ echo "Filename list: $(getrange 4-8)"
 # 00004.dre 00005.dre 00006.dre 00007.dre 00008.dre
 getrange() {
-    [ -n "$1" ] || "Invalid arguments given to getrange()"
+    [ -n "$1" ] || die "Invalid arguments given to getrange()"
     local startat; local endat
     startat=${1%@*}
     endat=${1#*@}
@@ -603,7 +665,7 @@ dreamfind() {
             [ -n "$3" ] || die "oops"
             operator=$2
             dateExpr=$3
-            [[ "$dateExpr" =~ [012][0-9][0-9][0-9]-[01][0-9]-[0123][0-9] ]] || die "Invalid date (use YYYY-MM-DD)."
+            myDate=$(date '+%Y-%m-%d' -d "$dateExpr" 2>/dev/null) || die "Invalid date expression '$dateExpr', or no GNU 'date' on this system. If you have GNU 'date', try a YYYY-MM-DD format, or a phrase like 'today', 'last Monday', or 'June 7'."
             case $operator in
                 'gt'|'>')        awkop='>' ;;
                 'lt'|'<')        awkop='<' ;;
@@ -614,7 +676,7 @@ dreamfind() {
                 *)               die "Invalid operator!" ;;
             esac
 
-            newargs=$(awk "/Date:	/ { if (\$2 $awkop \"$dateExpr\") { print FILENAME } }" $DREAMGLOB)
+            newargs=$(awk "/Date:	/ { if (\$2 $awkop \"$myDate\") { print FILENAME } }" $DREAMGLOB)
             shift 2
             ;;
 
@@ -937,8 +999,12 @@ def get_headers():
             for line in f:
                 if not line.strip():
                     break
-                header, value = (i.strip() for i in line.split(':\t'))
-                dream[header] = value
+                try:
+                    header, value = (i.strip() for i in line.split(':\t'))
+                except ValueError:
+                    print(f"Invalid header in {dreamfile} (skipping): {line}")
+                else:
+                    dream[header] = value
             dreams[dreamfile[:-4]] = dream
     return dreams
 
@@ -1004,6 +1070,28 @@ tacw() {
     fi
 }
 
+columnw() {
+    if hash column 2>/dev/null; then
+        column "$@"
+    else
+        # https://unix.stackexchange.com/questions/602522/posix-equivalent-to-column-t
+        awk -F $'\t' '{
+            if (max_column < NF) max_column = NF;
+            for (i = 1; i <= NF; i++) {
+                if (width[i] < length($i)) width[i] = length($i);
+                data[NR, i] = $i;
+            }
+        }
+        END {
+            for (i = 1; i < max_column; i++) format[i] = sprintf("%%-%ds  ", width[i]);
+            format[max_column] = "%s\n";
+            for (k = 1; k <= NR; k++) {
+                for (i = 1; i <= max_column; i++) printf format[i], data[k, i];
+            }
+        }'
+    fi
+}
+
 # sed -i requires an empty argument on MacOS sed,
 # but cannot take one on GNU sed! This lets us choose the right one.
 # https://stackoverflow.com/a/38595160
@@ -1032,11 +1120,23 @@ case "$action" in
     ;;
 
 "find"|"f")
+    if [ "$1" = "-t" ]; then
+        dreamfind last
+        totnum=$(defileify $args)
+        shift
+    fi
+
     dreamfind "$@"
     # remove leading zeroes and '.dre' for display, add separator commas
     results="$(defileify $args)"
     numMatches=$(trim "$(wc -w <<<"$results")")
-    echo -e "$numMatches $(numerize $numMatches "match" "matches"): [$results]"
+    if [ -n "$totnum" ]; then
+        proportion=$((numMatches * 10000 / totnum))
+        tot=" of $totnum total dreams ($(printf "%d.%.2d" $((proportion/100)) $((proportion%100)))%)"
+    else
+        tot=""
+    fi
+    echo -e "$numMatches $(numerize $numMatches "match" "matches")$tot: [$results]"
     ;;
 
 "filename-display"|"fd")
@@ -1081,6 +1181,12 @@ case "$action" in
     ;;
 
 "cat"|"c")
+    # fold if requested; must be first or -f will be gobbled by dreamfind's getopts
+    if [ "$1" = "-f" ]; then
+        foldCmd="| fold -s"
+        shift
+    fi
+
     dreamfind "$@"
 
     # paste files together with double newlines
@@ -1089,12 +1195,6 @@ case "$action" in
 
     # add color if running in an interactive terminal
     [ -t 1 ] && highlightCmd='| colorify'
-
-    # fold if requested
-    if [ "$1" = "-f" ]; then
-        foldCmd="| fold -s"
-        shift
-    fi
 
     # evaluate pipeline with appropriate parts
     eval "$mainCmd $highlightCmd $foldCmd"
@@ -1164,6 +1264,107 @@ case "$action" in
 "regenerate-tags"|"rt")
     regenerate_tags ;;
 
+"tabulate"|"t")
+    # Read options.
+    tabulate_raw=0
+    tabulate_truncate=0
+    tabulate_wrap=0
+    while getopts ":rtw" opt; do
+        case $opt in
+            r)  tabulate_raw=1  ;;
+            t)  tabulate_truncate=1  ;;
+            w)  tabulate_wrap=1  ;;
+            *)
+                die "Invalid option -$OPTARG (-rtw are valid; see 'dr help tabulate')"
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    OPTIND=1
+
+    # Sanity check.
+    if [ $tabulate_truncate -eq 1 ] || [ $tabulate_wrap -eq 1 ]; then
+        if ! hash column 2>/dev/null; then
+            die "The truncate (-t) and wrap (-w) options to 'dr tabulate' are not supported on this system because the 'column' command is not installed."
+        elif ! column --version >/dev/null 2>&1; then
+            # macOS has a really cruddy version of 'column'
+            die "The truncate (-t) and wrap (-w) options to 'dr tabulate' are not supported because this system's version of 'column' lacks the required options."
+        fi
+    fi
+    [ -n "$1" ] || die "Usage: $(basename "$0") tabulate <comma separated header names> <search expression>"
+
+    # Build arrays of selected headers and matching dreams.
+    declare -A dreams
+    ids=('Id')
+    headers=()
+
+    IFS=',' read -ra headers <<<"$1"
+    shift
+    for h in "${headers[@]}"; do
+        # Note the use of a delimiter _ in keys, because bash doesn't support
+        # multidimensional arrays (associative or otherwise).
+        dreams[Id_$h]="${h^^}"
+    done
+
+    dreamfind "$@"
+    for d in $args; do
+        while read -r line; do
+            case "$line" in
+                "Id:	"*)
+                    curId="${line#Id:	}"
+                    ids+=("$curId")
+                    dreams[${curId}_Id]=$curId
+                    ;;
+                *":	"*)
+                    dreams[${curId}_${line%%:*}]="${line#*:	}"
+                    ;;
+                *)
+                    # end of headers
+                    break ;;
+                esac
+        done <"$d"
+    done
+
+    # If we are potentially truncating or wrapping columns, decide which columns.
+    if [ $tabulate_truncate -eq 1 ] || [ $tabulate_wrap -eq 1 ]; then
+        all_headers=$(tr ' ' ',' <<<"${headers[@]}")
+
+        # Read headers which we should not be allowed to wrap or truncate from
+        # the .unwrappable_headers file, or use defaults if not present.
+        if [ -f ".unwrappable_headers" ]; then
+            unwraps=$(<.unwrappable_headers)
+        else
+            unwraps=$'Id\nDate'
+        fi
+        for h in "${headers[@]}"; do
+            if ! grep -Fxq "$h" <<<"$unwraps"; then
+                wraps+=("$h")
+            fi
+        done
+        wrappable_headers=$(tr ' ' ',' <<<"${wraps[@]}")
+    fi
+
+    # Select output mode.
+    if [ $tabulate_raw -eq 1 ]; then
+        column_command="cat"
+    elif [ $tabulate_truncate -eq 1 ]; then
+        column_command="columnw -ts $'\t' -N $all_headers -dT $wrappable_headers"
+    elif [ $tabulate_wrap -eq 1 ]; then
+        column_command="columnw -ts $'\t' -N $all_headers -dW $wrappable_headers"
+    else
+        column_command="columnw -ts $'\t'"
+    fi
+
+    # Print rows.
+    for d in "${ids[@]}"; do
+        for h in "${headers[@]}"; do
+            echo -en "${dreams[${d}_$h]}\t"
+        done
+        echo ""
+    done | eval "$column_command"
+
+    ;;
+
 "act"|"a")
     [ -n "$1" ] || die "Usage: [chain of piped dr commands] | dr act <search action>"
     input=$(cat <&0)
@@ -1193,6 +1394,8 @@ case "$action" in
             usagemsg_header_replace ;;
         "new"|"n")
             usagemsg_new ;;
+        "tabulate"|"t")
+            usagemsg_tabulate ;;
         *)
             usagemsg ;;
     esac
