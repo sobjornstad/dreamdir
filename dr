@@ -23,7 +23,7 @@
 
 ##### CONSTANTS #####
 # application version
-declare -r MYVERSION="2.1.0"
+declare -r MYVERSION="2.2.0"
 
 # matching pattern for dream files
 declare -r DREAMGLOB='[0-9][0-9][0-9][0-9][0-9].dre'
@@ -120,6 +120,7 @@ results are concatenated.
   * d[ate] <op> <date> :: select dreams by date; <op> is 'gt', 'ge', 'lt',
                       'le', 'eq', or 'ne' or the usual symbolic equivalents
                       (>, >=, <, <=, =, !=), and <date> is in YYYY-MM-DD format
+                      [requires GNU-compatible 'date -d' option on your system]
   * g[rep] <regex> :: select all dreams matching ERE <regex> anywhere in the
                       file (whether in headers, notes, or text)
   * t[agged] [-f] <header> <hregex> :: select dreams with <header> matching
@@ -664,7 +665,7 @@ dreamfind() {
             [ -n "$3" ] || die "oops"
             operator=$2
             dateExpr=$3
-            myDate=$(date '+%Y-%m-%d' -d "$dateExpr" 2>/dev/null) || die "Invalid date expression '$dateExpr'. Try YYYY-MM-DD, or a phrase like 'today', 'last Monday', or 'June 7'."
+            myDate=$(date '+%Y-%m-%d' -d "$dateExpr" 2>/dev/null) || die "Invalid date expression '$dateExpr', or no GNU 'date' on this system. If you have GNU 'date', try a YYYY-MM-DD format, or a phrase like 'today', 'last Monday', or 'June 7'."
             case $operator in
                 'gt'|'>')        awkop='>' ;;
                 'lt'|'<')        awkop='<' ;;
