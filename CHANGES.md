@@ -1,3 +1,22 @@
+Changes in 2.2.0
+----------------
+
+New features:
+
+* `date` search expression can now find dreams based on arbitrary expressions
+  like “yesterday” or “three weeks ago” (requires GNU `date` or compatible
+  with the `-d` option).
+* `tabulate` search expression allows easy generation of a table of matching
+  dreams and arbitrary headers you select. See `dr help tabulate` for details.
+* New `-t` switch to `find` search expression allows calculating the proportion
+  of dreams matched.
+
+Bugs fixed:
+
+* Message no longer erroneously suggests running `help dr` instead of `dr help`.
+* `-f` option to `dr cat` is now honored as documented.
+
+
 Changes in 2.1.0
 ----------------
 
