@@ -42,6 +42,16 @@ Application:
   and all code is provided under the MIT license (see the LICENSE file for details).
 
 
+## AI use
+
+As of this writing, I have not used any kind of AI agents or assistance
+to work on any part of Dreamdir.
+I may choose to make occasional use of AI agents for changes in the future,
+although I do not anticipate major changes to Dreamdir,
+as it is basically feature-complete.
+Documentation will remain 100% human-written.
+
+
 Dreamdir format
 ===============
 
